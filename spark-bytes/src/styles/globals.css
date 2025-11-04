@@ -1,0 +1,14 @@
+html,
+body,
+#__next {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+
+.ant-layout {
+  background: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
