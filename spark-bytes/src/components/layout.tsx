@@ -22,6 +22,12 @@ export default function Layout({ children }: { children: ReactNode }) {
     
 
     { key: "/about", icon: <InfoCircleOutlined />, label: <Link href="/about">About</Link> },
+
+    { key: "/auth/signup", label: <Link href="/auth/signup">Sign up</Link>},
+
+    { key: "/auth/signin", label: <Link href="/auth/signin">Sign in</Link>}
+
+
   ];
 
   return (
