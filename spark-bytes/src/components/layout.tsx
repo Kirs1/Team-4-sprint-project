@@ -41,9 +41,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           padding: "0 2rem",
         }}
       >
+        <Link href="/" style={{ textDecoration: "none" }}>
         <Title level={3} style={{ color: "white", margin: 0 }}>
           Spark!Bytes
         </Title>
+        </Link>
         <Menu
           theme="dark"
           mode="horizontal"
