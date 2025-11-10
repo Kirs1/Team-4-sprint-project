@@ -1,0 +1,28 @@
+.card {
+  border-radius: 12px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+}
+
+.heading {
+  display: flex;
+  color: aliceblue;
+  justify-content: center;    
+  align-items: center;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+}
+
+.date {
+  font-weight: 600;
+  
+  margin-bottom: 6px;
+}
+
+.description {
+  color: #555;
+  line-height: 1.5;
+}

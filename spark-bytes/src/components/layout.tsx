@@ -7,6 +7,8 @@ import { Layout as AntLayout, Typography, Menu} from "antd";
 
 import {
   HomeOutlined,
+  TableOutlined,
+  UserOutlined,
 
   InfoCircleOutlined,
 } from "@ant-design/icons";
@@ -23,9 +25,12 @@ export default function Layout({ children }: { children: ReactNode }) {
 
     { key: "/about", icon: <InfoCircleOutlined />, label: <Link href="/about">About</Link> },
 
-    { key: "/auth/signup", label: <Link href="/auth/signup">Sign up</Link>},
+    {key: "auth", icon: <UserOutlined/>, label:"Account", children: [
+      { key: "/auth/signup", label: <Link href="/auth/signup">Sign up</Link>},
 
-    { key: "/auth/signin", label: <Link href="/auth/signin">Sign in</Link>}
+    { key: "/auth/signin", label: <Link href="/auth/signin">Sign in</Link>},
+    ]},
+    { key: "/events", icon: <TableOutlined/>, label: <Link href="/events">View Events</Link>}
 
 
   ];
@@ -60,7 +65,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </Header>
 
   
-      <Content style={{ padding: "2rem", background: "#f5f5f5", flex: "1 0 auto" }}>
+      <Content style={{ padding: "2rem", background: "#02325fff", flex: "1 0 auto" }}>
         {children}
       </Content>
 
