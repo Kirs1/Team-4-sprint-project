@@ -20,8 +20,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
 
     const menuItems = [
-    { key: "/", icon: <HomeOutlined />, label: <Link href="/">Home</Link> },
-    
 
     { key: "/about", icon: <InfoCircleOutlined />, label: <Link href="/about">About</Link> },
 
