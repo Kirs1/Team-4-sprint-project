@@ -29,6 +29,11 @@ export default function Layout({ children }: { children: ReactNode }) {
       label: <Link href="/about">About</Link>,
     },
     {
+      key: "/events",
+      icon: <TableOutlined />,
+      label: <Link href="/events">View Events</Link>,
+    },
+    {
       key: "auth",
       icon: <UserOutlined />,
       label: "Account",
@@ -38,11 +43,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           label: <AuthButton />,
         },
       ],
-    },
-    {
-      key: "/events",
-      icon: <TableOutlined />,
-      label: <Link href="/events">View Events</Link>,
     },
   ];
 
