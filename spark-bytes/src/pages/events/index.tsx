@@ -18,7 +18,7 @@ export default function EventsPage() {
         setEvents(data);
         setLoading(false);
       })
-      .catch((err) => console.error("Error fetching events:", err));
+      .catch((err) => {console.log("Error fetching events:", err); setLoading(false);});
   }, []);
 
   if (loading) return <p>Loading...</p>;
