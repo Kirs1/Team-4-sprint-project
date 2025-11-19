@@ -7,7 +7,7 @@ export default function AuthButton() {
 
   if (!session) {
     return (
-      <button onClick={() => signIn("google")}>
+      <button style={{background: "white"}}onClick={() => signIn("google")}>
         Sign in with Google
       </button>
     );

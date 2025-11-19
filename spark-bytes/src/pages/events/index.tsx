@@ -1,61 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Row, Col, Spin, Empty } from "antd";
 import EventCard from "../../components/eventcard";
-import styles from "../../styles/eventcard.module.css"
+import styles from "../../styles/eventcard.module.css";
 import Layout from "../../components/layout";
-import { supabase } from "../../lib/supabaseClient";
+import { useEffect, useState } from "react";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadEvents() {
-    const { data, error } = await supabase
-      .from("events")
-      .select(`
-        id,
-        name,
-        start_time,
-        end_time,
-        location_name,
-        organizations (
-          name
-        )
-      `);
-
-      if (error) {
-        console.error("Supabase error:", error);
-      } else {
-        console.log("Fetched events:", data);
-        setEvents(data || []);
-      }
-      setLoading(false);
-    }
-
-    loadEvents();
+    fetch("http://127.0.0.1:8000/events")
+      .then((res) => res.json())
+      .then((data) => {
+        setEvents(data);
+        setLoading(false);
+      })
+      .catch((err) => console.error("Error fetching events:", err));
   }, []);
+
+  if (loading) return <p>Loading...</p>;
 
   return (
     <Layout>
-    <div className={styles.container}>
-      <h1 className={styles.heading}>Upcoming Events</h1>
+      <div className={styles.container}>
+        <h1 className={styles.heading}>Upcoming Events</h1>
         {loading ? (
-          <Spin />
+          <Spin size="large" />
         ) : events.length === 0 ? (
-          <Empty description="No food currently available" />
+          <Empty description="No events available" />
         ) : (
-          <Row gutter={[16, 16]}>
-            {events.map((event) => (
-              <Col xs={24} sm={12} md={8} key={event.id}>
-                <EventCard {...event} />
-              </Col>
-            ))}
-          </Row>
-        )}
-    </div>
+        <Row gutter={[16, 16]}>
+          {events.map((event) => (
+            <Col xs={24} sm={12} md={8} key={event.id}>
+              <Link href={`/events/${event.id}`} style={{ textDecoration: "none" }}>
+                <EventCard
+                  title={event.name}
+                  date={event.start_time}
+                  location={event.location_name}     
+                  description={event.description}  
+                />
+              </Link>
+            </Col>
+          ))}
+        </Row>
+      )}
+      </div>
     </Layout>
   );
 }
