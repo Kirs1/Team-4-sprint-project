@@ -19,6 +19,10 @@ app.add_middleware(
 def root():
     return {"message": "FastAPI is running!"}
 
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
 @app.get("/events")
 def get_events():
     response = supabase.table("events").select("*").execute()
@@ -37,3 +41,13 @@ def get_events():
 
 
     return events
+
+# TODO : Implement proper event creation with validation
+@app.post("/events/create")
+async def create_event(event: dict, food: str = "default_food"):
+    return {"status": "event created", "event": event}
+
+# TODO : Implement proper user retrieval, expand as needed
+@app.get("/users/{user_id}")
+async def get_user(user_id: int):
+    return {"user_id": user_id, "name": "User" + str(user_id)}
