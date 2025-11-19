@@ -19,6 +19,7 @@ export default function EventsPage() {
         setLoading(false);
       })
       .catch((err) => {console.log("Error fetching events:", err); setLoading(false);});
+      // TODO: handle CORS error properly
   }, []);
 
   if (loading) return <p>Loading...</p>;
