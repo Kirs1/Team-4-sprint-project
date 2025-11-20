@@ -1,21 +1,94 @@
 "use client";
 
-import { Form, Input, DatePicker, Button, Card, Space, message } from "antd";
+import { useState } from "react";
+import { Form, Input, DatePicker, Button, Card, Space, message, TimePicker, InputNumber } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
+import { useAuth } from "../../../contexts/authcontext";
+
+const { TextArea } = Input;
 
 export default function CreateEventPage() {
   const [form] = Form.useForm();
   const router = useRouter();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
 
-  const onFinish = (values: any) => {
-    console.log("Event created:", values);
-    message.success("Event created successfully!");
-    // You could POST this to an API later:
-    // await fetch("/api/events", { method: "POST", body: JSON.stringify(values) });
-    router.push("/events");
+  const onFinish = async (values: any) => {
+    if (!user) {
+      message.error("Please log in to create events");
+      router.push("/login");
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      // Format the date and time
+      const startDate = values.date.format('YYYY-MM-DD');
+      const startTime = values.start_time.format('HH:mm:ss');
+      const endTime = values.end_time.format('HH:mm:ss');
+      
+      const eventData = {
+        name: values.title,
+        description: values.description,
+        location_name: values.location,
+        start_time: `${startDate}T${startTime}`,
+        end_time: `${startDate}T${endTime}`,
+        capacity: values.capacity || 50,
+        creator_id: user.id, // Use creator_id instead of organization_id
+      };
+
+      // Send POST request to create event
+      const response = await fetch('http://127.0.0.1:8000/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        message.success('Event created successfully!');
+        
+        // Refresh user data to get updated created_events count
+        if (user) {
+          const userResponse = await fetch(`http://127.0.0.1:8000/users/${user.id}`);
+          if (userResponse.ok) {
+            const updatedUser = await userResponse.json();
+            // You might want to update the user in your AuthContext here
+          }
+        }
+        
+        router.push("/dashboard");
+      } else {
+        const errorData = await response.json();
+        message.error(`Failed to create event: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+      message.error('Failed to create event. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (!user) {
+    return (
+      <Layout>
+        <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
+          <Card title="Access Denied" style={{ maxWidth: 500, width: "100%", textAlign: "center" }}>
+            <p>Please log in to create events</p>
+            <Button type="primary" onClick={() => router.push("/login")}>
+              Go to Login
+            </Button>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -33,7 +106,7 @@ export default function CreateEventPage() {
           >
             {/* Basic Info */}
             <Form.Item
-              label="Title"
+              label="Event Title"
               name="title"
               rules={[{ required: true, message: "Please enter an event title" }]}
             >
@@ -48,6 +121,26 @@ export default function CreateEventPage() {
               <DatePicker style={{ width: "100%" }} />
             </Form.Item>
 
+            <Space.Compact block>
+              <Form.Item
+                label="Start Time"
+                name="start_time"
+                rules={[{ required: true, message: "Please select start time" }]}
+                style={{ width: "50%", marginRight: 8 }}
+              >
+                <TimePicker format="HH:mm" style={{ width: "100%" }} />
+              </Form.Item>
+
+              <Form.Item
+                label="End Time"
+                name="end_time"
+                rules={[{ required: true, message: "Please select end time" }]}
+                style={{ width: "50%" }}
+              >
+                <TimePicker format="HH:mm" style={{ width: "100%" }} />
+              </Form.Item>
+            </Space.Compact>
+
             <Form.Item
               label="Location"
               name="location"
@@ -57,11 +150,24 @@ export default function CreateEventPage() {
             </Form.Item>
 
             <Form.Item
+              label="Capacity"
+              name="capacity"
+              initialValue={50}
+            >
+              <InputNumber
+                min={1}
+                max={1000}
+                placeholder="Enter capacity"
+                style={{ width: "100%" }}
+              />
+            </Form.Item>
+
+            <Form.Item
               label="Description"
               name="description"
               rules={[{ required: true, message: "Please enter a description" }]}
             >
-              <Input.TextArea rows={4} placeholder="Enter event description" />
+              <TextArea rows={4} placeholder="Enter event description" />
             </Form.Item>
 
             {/* Dynamic Food & Categories */}
@@ -76,7 +182,7 @@ export default function CreateEventPage() {
                       marginBottom: 8,
                     }}
                   >
-                    <h3 style={{ margin: 0 }}>Food Categories</h3>
+                    <h3 style={{ margin: 0 }}>Food Categories (Optional)</h3>
                     <Button
                       type="dashed"
                       onClick={() => add()}
@@ -157,7 +263,7 @@ export default function CreateEventPage() {
 
             {/* Submit */}
             <Form.Item>
-              <Button type="primary" htmlType="submit" block>
+              <Button type="primary" htmlType="submit" block loading={loading}>
                 Create Event
               </Button>
             </Form.Item>

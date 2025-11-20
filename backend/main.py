@@ -33,6 +33,15 @@ class UserResponse(BaseModel):
     role: str
     registered_events: list
 
+class EventCreate(BaseModel):
+    name: str
+    description: str
+    location_name: str
+    start_time: str
+    end_time: str
+    capacity: int
+    creator_id: str 
+
 # Utility functions
 def get_bu_email_id(email: str) -> str:
     """Convert email to bu.edu ID format (without @bu.edu)"""
@@ -108,6 +117,7 @@ async def signup(user_data: UserSignup):
         )
 
 @app.post("/auth/login")
+@app.post("/auth/login")
 async def login(login_data: UserLogin):
     try:
         # Validate BU email
@@ -129,12 +139,10 @@ async def login(login_data: UserLogin):
 
         user = response.data[0]
         
-        # In a real application, you would verify the password hash here
-        # For demo purposes, we'll assume the password is correct
-        # You should implement proper password verification with bcrypt
-        
-        # For now, we'll just return success if user exists
-        # In production, you should implement proper password hashing and verification
+        # Safely handle created_events field
+        created_events = user.get("created_events")
+        if created_events is None:
+            created_events = 0
         
         return {
             "message": "Login successful",
@@ -143,7 +151,8 @@ async def login(login_data: UserLogin):
                 "email": user["email"],
                 "full_name": user["full_name"],
                 "role": user["role"],
-                "registered_events": user["registered_events"]
+                "registered_events": user["registered_events"],
+                "created_events": created_events
             }
         }
             
@@ -239,4 +248,100 @@ async def register_for_event(user_id: str, event_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error registering for event: {str(e)}"
+        )
+    
+@app.post("/events")
+async def create_event(event_data: EventCreate):
+    try:
+        # Verify the user exists
+        user_response = supabase.table("users").select("*").eq("id", event_data.creator_id).execute()
+        
+        if not user_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Create the event with creator_id
+        event_dict = {
+            "name": event_data.name,
+            "description": event_data.description,
+            "location_name": event_data.location_name,
+            "start_time": event_data.start_time,
+            "end_time": event_data.end_time,
+            "quantity_left": event_data.capacity,
+            "creator_id": event_data.creator_id,
+            "created_at": datetime.now().isoformat()
+        }
+
+        # Insert the event
+        response = supabase.table("events").insert(event_dict).execute()
+        
+        if response.data:
+            # Update user's created_events count - handle None/undefined case safely
+            user = user_response.data[0]
+            current_created_events = user.get("created_events")
+            
+            # Safely handle None, string, or any unexpected type
+            try:
+                if current_created_events is None:
+                    current_created_events = 0
+                else:
+                    current_created_events = int(current_created_events)
+            except (TypeError, ValueError):
+                current_created_events = 0
+            
+            new_created_events = current_created_events + 1
+            
+            update_response = supabase.table("users").update({
+                "created_events": new_created_events
+            }).eq("id", event_data.creator_id).execute()
+            
+            if update_response.data:
+                return {
+                    "message": "Event created successfully",
+                    "event": response.data[0]
+                }
+            else:
+                # Rollback event creation if user update fails
+                supabase.table("events").delete().eq("id", response.data[0]["id"]).execute()
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to update user stats"
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create event"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating event: {str(e)}"
+        )
+# Update the get user created events endpoint
+@app.get("/users/{user_id}/created-events")
+async def get_user_created_events(user_id: str):
+    try:
+        # Get events created by this user using creator_id
+        response = supabase.table("events").select("*").eq("creator_id", user_id).execute()
+        
+        events = response.data
+        for e in events:
+            e["start_time"] = str(e["start_time"])
+            e["end_time"] = str(e["end_time"])
+            e["location_name"] = str(e["location_name"])
+            e["created_at"] = str(e["created_at"])
+            e["quantity_left"] = str(e["quantity_left"])
+            e["description"] = str(e["description"])
+
+        return events
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching user events: {str(e)}"
         )

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Row, Col, Card, Statistic, List, Tag } from "antd";
+import { Row, Col, Card, Statistic, List, Tag, message } from "antd";
 import { UserOutlined, CalendarOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../contexts/authcontext"; // Fixed import path
+import { useAuth } from "../../../contexts/authcontext";
 import Layout from "../../components/layout";
 import styles from "../../styles/dashboard.module.css";
 
@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [interestedEvents, setInterestedEvents] = useState<Event[]>([]);
   const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
+  const [userStats, setUserStats] = useState({ created_events: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,24 +30,68 @@ export default function DashboardPage() {
       return;
     }
 
-    // Fetch user's interested events (registered events)
-    fetch("http://127.0.0.1:8000/events")
-      .then((res) => res.json())
-      .then((allEvents) => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all events
+        const eventsResponse = await fetch("http://127.0.0.1:8000/events");
+        if (!eventsResponse.ok) {
+          throw new Error('Failed to fetch events');
+        }
+        const allEvents = await eventsResponse.json();
+
+        // Fetch user's created events
+        const createdEventsResponse = await fetch(`http://127.0.0.1:8000/users/${user.id}/created-events`);
+        let userCreatedEvents = [];
+        if (createdEventsResponse.ok) {
+          userCreatedEvents = await createdEventsResponse.json();
+        }
+
+        // Fetch updated user data to get created_events count
+        const userResponse = await fetch(`http://127.0.0.1:8000/users/${user.id}`);
+        let userData = { created_events: 0 };
+        if (userResponse.ok) {
+          userData = await userResponse.json();
+        }
+
         // Filter events that user has registered for
         const userInterestedEvents = allEvents.filter((event: Event) => 
-          user.registered_events?.includes(event.id)
+          Array.isArray(user.registered_events) && user.registered_events.includes(event.id)
         );
+
         setInterestedEvents(userInterestedEvents);
+        setCreatedEvents(userCreatedEvents);
+        setUserStats({
+          created_events: userData.created_events || userCreatedEvents.length
+        });
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        message.warning('Some data may not be loaded correctly');
         
-        // For demo, let's assume user created some events
-        setCreatedEvents(allEvents.slice(0, 2)); // Mock: first 2 events as created
+        // Fallback: try to at least get basic events
+        try {
+          const eventsResponse = await fetch("http://127.0.0.1:8000/events");
+          if (eventsResponse.ok) {
+            const allEvents = await eventsResponse.json();
+            const userInterestedEvents = allEvents.filter((event: Event) => 
+              Array.isArray(user.registered_events) && user.registered_events.includes(event.id)
+            );
+            setInterestedEvents(userInterestedEvents);
+            // Use first 2 events as fallback for created events
+            setCreatedEvents(allEvents.slice(0, 2));
+            setUserStats({ created_events: 2 });
+          }
+        } catch (fallbackError) {
+          console.error("Fallback also failed:", fallbackError);
+        }
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.log("Error fetching events:", err);
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchDashboardData();
   }, [user, router]);
 
   const handleCreateEvent = () => {
@@ -54,10 +99,20 @@ export default function DashboardPage() {
   };
 
   if (!user) {
-    return <div className={styles.loading}>Redirecting to login...</div>;
+    return (
+      <Layout>
+        <div className={styles.loading}>Redirecting to login...</div>
+      </Layout>
+    );
   }
 
-  if (loading) return <div className={styles.loading}>Loading...</div>;
+  if (loading) {
+    return (
+      <Layout>
+        <div className={styles.loading}>Loading...</div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -131,20 +186,12 @@ export default function DashboardPage() {
                 <Col xs={12}>
                   <Statistic
                     title="Created Events"
-                    value={createdEvents.length}
+                    value={userStats.created_events}
                     prefix={<CalendarOutlined />}
                     valueStyle={{ color: '#1890ff' }}
                   />
                 </Col>
-                <Col xs={12}>
-                  <Statistic
-                    title="Food Saved"
-                    value={100}
-                    suffix="Kg"
-                    prefix={<ShoppingOutlined />}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </Col>
+                
               </Row>
               
               {/* Created Events List */}
