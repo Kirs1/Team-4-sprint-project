@@ -3,41 +3,42 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Layout as AntLayout, Typography, Menu, Dropdown, Space, Button } from "antd";
-import { useAuth } from "../../contexts/authcontext";
+import { Layout as AntLayout, Typography, Menu, Dropdown, Space } from "antd";
 import {
-  HomeOutlined,
   TableOutlined,
   UserOutlined,
   InfoCircleOutlined,
   DashboardOutlined,
-  LogoutOutlined,
-  PlusOutlined,
 } from "@ant-design/icons";
+import AuthButton from "./auth";
+import { SessionProvider, useSession } from "next-auth/react";
 
 const { Header, Content, Footer } = AntLayout;
 const { Title } = Typography;
 
 export default function Layout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
-
-  const handleLogout = () => {
-    logout();
-  };
+  const { data: session, status } = useSession();
 
   const userMenuItems = [
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: <Link href="/dashboard">Dashboard</Link>,
-    },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: 'Logout',
-      onClick: handleLogout,
-    },
+    ...(status === "authenticated"
+      ? [
+          {
+            key: 'dashboard',
+            icon: <DashboardOutlined />,
+            label: <Link href="/dashboard">Dashboard</Link>,
+          },
+          {
+            key: "auth-btn",
+            label: <AuthButton />,
+          },
+        ]
+      : [
+          {
+            key: "auth-btn",
+            label: <AuthButton />,
+          },
+        ]),
   ];
 
   const menuItems = [
@@ -52,81 +53,64 @@ export default function Layout({ children }: { children: ReactNode }) {
       label: <Link href="/events">View Events</Link>,
     },
     {
-      key: "/events/create",
-      icon: <PlusOutlined />,
-      label: <Link href="/events/create">Create Event</Link>
+      key: "auth",
+      icon: <UserOutlined />,
+      label: "Account",
+      children: userMenuItems,
     },
-    ...(user ? [
-      {
-        key: "user-menu",
-        icon: <UserOutlined />,
-        label: (
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Space style={{ cursor: "pointer", color: "white" }}>
-              <UserOutlined />
-              <span>{user.full_name}</span>
-            </Space>
-          </Dropdown>
-        ),
-      }
-    ] : [
-      {
-        key: "/login",
-        icon: <UserOutlined />,
-        label: <Link href="/login">Login</Link>,
-      }
-    ]),
   ];
 
   return (
-    <AntLayout style={{ minHeight: "100vh" }}>
-      <Header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: "#001529",
-          padding: "0 2rem",
-        }}
-      >
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <Title level={3} style={{ color: "white", margin: 0 }}>
-            Spark!Bytes
-          </Title>
-        </Link>
-
-        <Menu
-          theme="dark"
-          mode="horizontal"
-          selectedKeys={[pathname ?? ""]}
-          items={menuItems}
+    <SessionProvider>
+      <AntLayout style={{ minHeight: "100vh" }}>
+        <Header
           style={{
-            flex: 1,
-            justifyContent: "end",
-            backgroundColor: "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            backgroundColor: "#001529",
+            padding: "0 2rem",
           }}
-        />
-      </Header>
+        >
+          <Link href="/" style={{ textDecoration: "none" }}>
+            <Title level={3} style={{ color: "white", margin: 0 }}>
+              Spark!Bytes
+            </Title>
+          </Link>
 
-      <Content
-        style={{
-          padding: "2rem",
-          background: "#02325fff",
-          flex: "1 0 auto",
-        }}
-      >
-        {children}
-      </Content>
+          <Menu
+            theme="dark"
+            mode="horizontal"
+            selectedKeys={[pathname ?? ""]}
+            items={menuItems}
+            style={{
+              flex: 1,
+              justifyContent: "end",
+              backgroundColor: "transparent",
+            }}
+          />
+        </Header>
 
-      <Footer
-        style={{
-          textAlign: "center",
-          background: "#001529",
-          color: "white",
-        }}
-      >
-        © 2025 Spark!Bytes | Built by BU Students for CS391
-      </Footer>
-    </AntLayout>
+        <Content
+          style={{
+            padding: "2rem",
+            background: "#02325fff",
+            flex: "1 0 auto",
+          }}
+        >
+          {children}
+        </Content>
+
+        <Footer
+          style={{
+            textAlign: "center",
+            background: "#001529",
+            color: "white",
+          }}
+        >
+          © 2025 Spark!Bytes | Built by BU Students for CS391
+        </Footer>
+      </AntLayout>
+    </SessionProvider>
   );
 }
