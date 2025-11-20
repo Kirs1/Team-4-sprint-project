@@ -16,8 +16,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
 # Utility functions
 def get_bu_email_id(email: str) -> str:
     """Convert email to bu.edu ID format (without @bu.edu)"""
@@ -166,11 +164,11 @@ def get_events():
     return events
 
 # Additional endpoint to register for events
-@app.post("/users/{user_id}/events/{event_id}")
-async def register_for_event(user_id: str, event_id: str):
+@app.post("/events/{event_id}/registrations/{user_id}")
+async def register_for_event(event_id: str, user_id: str):
     try:
         # Get current user
-        user_response = supabase.table("users").select("*").eq("id", user_id).execute()
+        user_response = supabase.table("users").select("registered_events").eq("id", user_id).execute()
         
         if not user_response.data:
             raise HTTPException(
@@ -212,6 +210,8 @@ async def register_for_event(user_id: str, event_id: str):
             detail=f"Error registering for event: {str(e)}"
         )
     
+# TODO look over rest of file for auth integration
+    
 @app.post("/events")
 async def create_event(event_data: EventCreate):
     try:
@@ -242,7 +242,7 @@ async def create_event(event_data: EventCreate):
         if response.data:
             # Update user's created_events count - handle None/undefined case safely
             user = user_response.data[0]
-            current_created_events = user.get("created_events")
+            current_created_events = user.get("created_events", 0)
             
             # Safely handle None, string, or any unexpected type
             try:
@@ -284,6 +284,7 @@ async def create_event(event_data: EventCreate):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating event: {str(e)}"
         )
+    
 # Update the get user created events endpoint
 @app.get("/users/{user_id}/created-events")
 async def get_user_created_events(user_id: str):
