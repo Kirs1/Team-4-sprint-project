@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException, status
-from backend.db.supabaseclient import supabase
+from db.supabaseclient import supabase
 from datetime import datetime
-from backend.models.user import User, UserResponse
-from backend.models.event import EventCreate
+from models.user import User, UserResponse
+from models.event import EventCreate
 
 app = FastAPI()
 
