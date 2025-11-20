@@ -12,4 +12,4 @@ class UserResponse(BaseModel):
     full_name: str
     role: str
     registered_events: list
-    created_events: list
+    created_events: int
