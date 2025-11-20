@@ -1,6 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
+from pydantic import BaseModel, EmailStr
 from supabaseclient import supabase
-
+import uuid
+from datetime import datetime
 
 app = FastAPI()
 
@@ -14,21 +16,181 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pydantic Models
+class UserSignup(BaseModel):
+    email: str
+    full_name: str
+    password: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    role: str
+    registered_events: list
+
+class EventCreate(BaseModel):
+    name: str
+    description: str
+    location_name: str
+    start_time: str
+    end_time: str
+    capacity: int
+    creator_id: str 
+
+# Utility functions
+def get_bu_email_id(email: str) -> str:
+    """Convert email to bu.edu ID format (without @bu.edu)"""
+    if email.endswith('@bu.edu'):
+        return email.replace('@bu.edu', '')
+    return email
+
+def validate_bu_email(email: str) -> bool:
+    """Validate that email is a BU email"""
+    return email.endswith('@bu.edu')
 
 @app.get("/")
 def root():
     return {"message": "FastAPI is running!"}
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+@app.post("/auth/signup")
+async def signup(user_data: UserSignup):
+    try:
+        # Validate BU email
+        if not validate_bu_email(user_data.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only BU email addresses (@bu.edu) are allowed"
+            )
+
+        # Check if user already exists
+        user_id = get_bu_email_id(user_data.email)
+        existing_user = supabase.table("users").select("*").eq("id", user_id).execute()
+        
+        if existing_user.data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User already exists with this email"
+            )
+
+        # Create user in Supabase
+        user_data_dict = {
+            "id": user_id,
+            "email": user_data.email,
+            "full_name": user_data.full_name,
+            "role": "student",  # Default role
+            "registered_events": []  # Empty list for registered events
+        }
+
+        # In a real application, you would hash the password here
+        # For now, we'll assume Supabase handles authentication separately
+        # or you can implement password hashing with bcrypt
+        
+        response = supabase.table("users").insert(user_data_dict).execute()
+        
+        if response.data:
+            return {
+                "message": "User created successfully",
+                "user": {
+                    "id": user_data_dict["id"],
+                    "email": user_data_dict["email"],
+                    "full_name": user_data_dict["full_name"],
+                    "role": user_data_dict["role"]
+                }
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create user"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error during signup: {str(e)}"
+        )
+
+@app.post("/auth/login")
+@app.post("/auth/login")
+async def login(login_data: UserLogin):
+    try:
+        # Validate BU email
+        if not validate_bu_email(login_data.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only BU email addresses (@bu.edu) are allowed"
+            )
+
+        # Get user by ID (email without @bu.edu)
+        user_id = get_bu_email_id(login_data.email)
+        response = supabase.table("users").select("*").eq("id", user_id).execute()
+        
+        if not response.data:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+
+        user = response.data[0]
+        
+        # Safely handle created_events field
+        created_events = user.get("created_events")
+        if created_events is None:
+            created_events = 0
+        
+        return {
+            "message": "Login successful",
+            "user": {
+                "id": user["id"],
+                "email": user["email"],
+                "full_name": user["full_name"],
+                "role": user["role"],
+                "registered_events": user["registered_events"],
+                "created_events": created_events
+            }
+        }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error during login: {str(e)}"
+        )
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: str):
+    try:
+        response = supabase.table("users").select("*").eq("id", user_id).execute()
+        
+        if not response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user = response.data[0]
+        return UserResponse(**user)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching user: {str(e)}"
+        )
 
 @app.get("/events")
 def get_events():
     response = supabase.table("events").select("*").execute()
 
     events = response.data
-
 
     for e in events:
         e["start_time"] = str(e["start_time"])
@@ -39,15 +201,147 @@ def get_events():
         e["quantity_left"] = str(e["quantity_left"])
         e["description"] = str(e["description"])
 
-
     return events
 
-# TODO : Implement proper event creation with validation
-@app.post("/events/create")
-async def create_event(event: dict, food: str = "default_food"):
-    return {"status": "event created", "event": event}
+# Additional endpoint to register for events
+@app.post("/users/{user_id}/events/{event_id}")
+async def register_for_event(user_id: str, event_id: str):
+    try:
+        # Get current user
+        user_response = supabase.table("users").select("*").eq("id", user_id).execute()
+        
+        if not user_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        user = user_response.data[0]
+        registered_events = user.get("registered_events", [])
+        
+        # Check if already registered
+        if event_id in registered_events:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User already registered for this event"
+            )
+        
+        # Add event to registered events
+        registered_events.append(event_id)
+        
+        # Update user
+        update_response = supabase.table("users").update({
+            "registered_events": registered_events
+        }).eq("id", user_id).execute()
+        
+        if update_response.data:
+            return {"message": "Successfully registered for event"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to register for event"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error registering for event: {str(e)}"
+        )
+    
+@app.post("/events")
+async def create_event(event_data: EventCreate):
+    try:
+        # Verify the user exists
+        user_response = supabase.table("users").select("*").eq("id", event_data.creator_id).execute()
+        
+        if not user_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
 
-# TODO : Implement proper user retrieval, expand as needed
-@app.get("/users/{user_id}")
-async def get_user(user_id: int):
-    return {"user_id": user_id, "name": "User" + str(user_id)}
+        # Create the event with creator_id
+        event_dict = {
+            "name": event_data.name,
+            "description": event_data.description,
+            "location_name": event_data.location_name,
+            "start_time": event_data.start_time,
+            "end_time": event_data.end_time,
+            "quantity_left": event_data.capacity,
+            "creator_id": event_data.creator_id,
+            "created_at": datetime.now().isoformat()
+        }
+
+        # Insert the event
+        response = supabase.table("events").insert(event_dict).execute()
+        
+        if response.data:
+            # Update user's created_events count - handle None/undefined case safely
+            user = user_response.data[0]
+            current_created_events = user.get("created_events")
+            
+            # Safely handle None, string, or any unexpected type
+            try:
+                if current_created_events is None:
+                    current_created_events = 0
+                else:
+                    current_created_events = int(current_created_events)
+            except (TypeError, ValueError):
+                current_created_events = 0
+            
+            new_created_events = current_created_events + 1
+            
+            update_response = supabase.table("users").update({
+                "created_events": new_created_events
+            }).eq("id", event_data.creator_id).execute()
+            
+            if update_response.data:
+                return {
+                    "message": "Event created successfully",
+                    "event": response.data[0]
+                }
+            else:
+                # Rollback event creation if user update fails
+                supabase.table("events").delete().eq("id", response.data[0]["id"]).execute()
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to update user stats"
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create event"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating event: {str(e)}"
+        )
+# Update the get user created events endpoint
+@app.get("/users/{user_id}/created-events")
+async def get_user_created_events(user_id: str):
+    try:
+        # Get events created by this user using creator_id
+        response = supabase.table("events").select("*").eq("creator_id", user_id).execute()
+        
+        events = response.data
+        for e in events:
+            e["start_time"] = str(e["start_time"])
+            e["end_time"] = str(e["end_time"])
+            e["location_name"] = str(e["location_name"])
+            e["created_at"] = str(e["created_at"])
+            e["quantity_left"] = str(e["quantity_left"])
+            e["description"] = str(e["description"])
+
+        return events
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching user events: {str(e)}"
+        )
