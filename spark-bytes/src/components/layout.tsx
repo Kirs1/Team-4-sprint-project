@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import AuthButton from "./auth";
 import { SessionProvider, useSession } from "next-auth/react";
+import "../styles/globals.css";
 
 const { Header, Content, Footer } = AntLayout;
 const { Title } = Typography;

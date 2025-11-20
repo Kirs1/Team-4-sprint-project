@@ -1,21 +1,25 @@
 "use client";
 
+import { Typography } from "antd";
 import { signIn, signOut, useSession } from "next-auth/react";
+
+const { Link } = Typography;
 
 export default function AuthButton() {
   const { data: session } = useSession();
 
   if (!session) {
     return (
-      <button style={{background: "white"}}onClick={() => signIn("google")}>
+      <Link onClick={() => signIn("google")}>
         Sign in with Google
-      </button>
+      </Link>
     );
   }
 
   return (
-    <>
-      <button onClick={() => signOut()}>Logout</button>
-    </>
+    <Link onClick={() => signOut()}>
+      Logout
+    </Link>
   );
 }
+
