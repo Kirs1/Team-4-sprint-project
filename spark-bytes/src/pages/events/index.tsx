@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Row, Col } from "antd";
+import { Row, Col, Spin, Empty } from "antd";
 import EventCard from "../../components/eventcard";
 import styles from "../../styles/eventcard.module.css";
 import Layout from "../../components/layout";
@@ -18,7 +18,8 @@ export default function EventsPage() {
         setEvents(data);
         setLoading(false);
       })
-      .catch((err) => console.error("Error fetching events:", err));
+      .catch((err) => {console.log("Error fetching events:", err); setLoading(false);});
+      // TODO: handle CORS error properly
   }, []);
 
   if (loading) return <p>Loading...</p>;
@@ -27,7 +28,11 @@ export default function EventsPage() {
     <Layout>
       <div className={styles.container}>
         <h1 className={styles.heading}>Upcoming Events</h1>
-
+        {loading ? (
+          <Spin size="large" />
+        ) : events.length === 0 ? (
+          <Empty description="No events available" />
+        ) : (
         <Row gutter={[16, 16]}>
           {events.map((event) => (
             <Col xs={24} sm={12} md={8} key={event.id}>
@@ -42,6 +47,7 @@ export default function EventsPage() {
             </Col>
           ))}
         </Row>
+      )}
       </div>
     </Layout>
   );
