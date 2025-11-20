@@ -1,8 +1,8 @@
-from typing import Optional
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, EmailStr
-from supabaseclient import supabase
+from backend.db.supabaseclient import supabase
 from datetime import datetime
+from backend.models.user import User, UserResponse
+from backend.models.event import EventCreate
 
 app = FastAPI()
 
@@ -16,27 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic Models
-class User(BaseModel):
-    name: str
-    email: EmailStr
-    image: Optional[str] = None
-    id: str
 
-class UserResponse(BaseModel):
-    email: str
-    full_name: str
-    role: str
-    registered_events: list
-    created_events: list
-
-class EventCreate(BaseModel):
-    name: str
-    description: str
-    location_name: str
-    start_time: str
-    end_time: str
-    capacity: int
 
 # Utility functions
 def get_bu_email_id(email: str) -> str:
