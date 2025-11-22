@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Layout as AntLayout, Typography, Menu, Dropdown, Space } from "antd";
+import { Layout as AntLayout, Typography, Menu } from "antd";
 import {
   TableOutlined,
   UserOutlined,
@@ -12,7 +12,6 @@ import {
 } from "@ant-design/icons";
 import AuthButton from "./auth";
 import { SessionProvider, useSession } from "next-auth/react";
-import "../styles/globals.css";
 
 const { Header, Content, Footer } = AntLayout;
 const { Title } = Typography;
