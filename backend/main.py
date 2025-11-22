@@ -27,7 +27,7 @@ def get_bu_email_id(email: str) -> str:
 def root():
     return {"message": "FastAPI is running!"}
 
-@app.post("/auth/signup")
+@app.post("/users")
 async def signup(user_data: User):
     try:
         # Check if user already exists
@@ -44,7 +44,7 @@ async def signup(user_data: User):
         user_data_dict = {
             "id": user_id,
             "email": user_data.email,
-            "full_name": user_data.full_name,
+            "full_name": user_data.name,
             "role": "student",  # Default role
             "registered_events": []  # Empty list for registered events
         }
@@ -74,53 +74,6 @@ async def signup(user_data: User):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error during signup: {str(e)}"
         )
-
-# @app.post("/auth/login")
-# async def login(login_data: UserLogin):
-#     try:
-#         # Validate BU email
-#         if not validate_bu_email(login_data.email):
-#             raise HTTPException(
-#                 status_code=status.HTTP_400_BAD_REQUEST,
-#                 detail="Only BU email addresses (@bu.edu) are allowed"
-#             )
-
-#         # Get user by ID (email without @bu.edu)
-#         user_id = get_bu_email_id(login_data.email)
-#         response = supabase.table("users").select("*").eq("id", user_id).execute()
-        
-#         if not response.data:
-#             raise HTTPException(
-#                 status_code=status.HTTP_401_UNAUTHORIZED,
-#                 detail="Invalid email or password"
-#             )
-
-#         user = response.data[0]
-        
-#         # Safely handle created_events field
-#         created_events = user.get("created_events")
-#         if created_events is None:
-#             created_events = 0
-        
-#         return {
-#             "message": "Login successful",
-#             "user": {
-#                 "id": user["id"],
-#                 "email": user["email"],
-#                 "full_name": user["full_name"],
-#                 "role": user["role"],
-#                 "registered_events": user["registered_events"],
-#                 "created_events": created_events
-#             }
-#         }
-            
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail=f"Error during login: {str(e)}"
-#         )
 
 @app.get("/users/{user_id}")
 async def get_user(user_id: str):

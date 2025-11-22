@@ -9,7 +9,7 @@ class User(BaseModel):
 
 class UserResponse(BaseModel):
     email: str
-    full_name: str
+    name: str
     role: str
     registered_events: list
     created_events: int
