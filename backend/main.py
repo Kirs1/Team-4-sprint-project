@@ -146,9 +146,30 @@ async def get_user(user_id: str):
             detail=f"Error fetching user: {str(e)}"
         )
 
+
+# TODO: add exceptions for get events
+
 @app.get("/events")
 def get_events():
     response = supabase.table("events").select("*").execute()
+
+    events = response.data
+
+    for e in events:
+        e["start_time"] = str(e["start_time"])
+        e["end_time"] = str(e["end_time"])
+        e["location_name"] = str(e["location_name"])
+        e["end_time"] = str(e["end_time"])
+        e["created_at"] = str(e["created_at"])
+        e["quantity_left"] = str(e["quantity_left"])
+        e["description"] = str(e["description"])
+
+    return events
+
+
+@app.get("/events/{event_id}")
+def get_event(event_id: str):
+    response = supabase.table("events").select("*").eq("id", event_id).execute()
 
     events = response.data
 
