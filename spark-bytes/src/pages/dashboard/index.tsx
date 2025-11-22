@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Row, Col, Card, Statistic, List, Tag, message } from "antd";
 import { UserOutlined, CalendarOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../../contexts/authcontext";
+import { useSession } from "next-auth/react";
 import Layout from "../../components/layout";
 import styles from "../../styles/dashboard.module.css";
 
@@ -18,7 +18,8 @@ interface Event {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { data: session } = useSession();
+  const [user, setUser] = useState<any>(session?.user || null);
   const [interestedEvents, setInterestedEvents] = useState<Event[]>([]);
   const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
   const [userStats, setUserStats] = useState({ created_events: 0 });
@@ -122,7 +123,7 @@ export default function DashboardPage() {
           <h1>User Dashboard</h1>
           <div className={styles.userInfo}>
             <UserOutlined className={styles.userIcon} />
-            <span className={styles.userName}>{user.full_name}</span>
+            <span className={styles.userName}>{user.name}</span>
           </div>
         </div>
 

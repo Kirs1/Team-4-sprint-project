@@ -18,7 +18,7 @@ const { Title } = Typography;
 
 export default function Layout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const userMenuItems = [
     ...(status === "authenticated"
