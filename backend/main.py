@@ -198,7 +198,7 @@ async def create_event(event_data: EventCreate):
                 detail="User not found"
             )
 
-        # Create the event with creator_id
+        # Create the event with creator_name
         event_dict = {
             "name": event_data.name,
             "description": event_data.description,
@@ -206,7 +206,7 @@ async def create_event(event_data: EventCreate):
             "start_time": event_data.start_time,
             "end_time": event_data.end_time,
             "quantity_left": event_data.capacity,
-            "creator_id": event_data.creator_id,
+            "creator_name": event_data.creator_name,
             "created_at": datetime.now().isoformat()
         }
 

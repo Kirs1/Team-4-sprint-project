@@ -8,6 +8,8 @@ class EventCreate(BaseModel):
     start_time: str
     end_time: str
     capacity: int
+    creator_id: str
+    creator_name: str
 
 class EventUpdate(BaseModel):
     name: Optional[str] = None
@@ -25,4 +27,4 @@ class EventResponse(BaseModel):
     start_time: str
     end_time: str
     capacity: int
-    creator: str
+    creator_name: str
