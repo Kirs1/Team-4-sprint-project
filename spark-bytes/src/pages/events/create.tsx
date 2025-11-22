@@ -5,14 +5,15 @@ import { Form, Input, DatePicker, Button, Card, Space, message, TimePicker, Inpu
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
-import { useAuth } from "../../../contexts/authcontext";
+import { useSession } from "next-auth/react";
 
 const { TextArea } = Input;
 
 export default function CreateEventPage() {
   const [form] = Form.useForm();
   const router = useRouter();
-  const { user } = useAuth();
+  const { data: session } = useSession();
+  const [user, setUser] = useState<any>(session?.user || null);
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values: any) => {
@@ -37,7 +38,8 @@ export default function CreateEventPage() {
         start_time: `${startDate}T${startTime}`,
         end_time: `${startDate}T${endTime}`,
         capacity: values.capacity || 50,
-        creator_id: user.id, // Use creator_id instead of organization_id
+        creator_id: user.id,
+        creator_name: user.name,
       };
 
       // Send POST request to create event
