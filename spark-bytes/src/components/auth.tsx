@@ -17,7 +17,7 @@ export default function AuthButton() {
   }
 
   return (
-    <Link onClick={() => signOut()}>
+    <Link onClick={() => signOut({ callbackUrl: "/" })}>
       Logout
     </Link>
   );
