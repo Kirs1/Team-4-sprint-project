@@ -7,6 +7,11 @@ import Layout from "../../components/layout";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
 
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
+
 const { TextArea } = Input;
 
 export default function CreateEventPage() {
@@ -19,7 +24,6 @@ export default function CreateEventPage() {
   const onFinish = async (values: any) => {
     if (!user) {
       message.error("Please log in to create events");
-      router.push("/login");
       return;
     }
 
@@ -27,16 +31,27 @@ export default function CreateEventPage() {
     
     try {
       // Format the date and time
-      const startDate = values.date.format('YYYY-MM-DD');
-      const startTime = values.start_time.format('HH:mm:ss');
-      const endTime = values.end_time.format('HH:mm:ss');
+      const start = values.date
+        .hour(values.start_time.hour())
+        .minute(values.start_time.minute())
+        .second(0)
+        .utc()
+        .format("YYYY-MM-DDTHH:mm:ss[Z]");
+
+      const end = values.date
+        .hour(values.end_time.hour())
+        .minute(values.end_time.minute())
+        .second(0)
+        .utc()
+        .format("YYYY-MM-DDTHH:mm:ss[Z]");
+
       
       const eventData = {
         name: values.title,
         description: values.description,
         location_name: values.location,
-        start_time: `${startDate}T${startTime}`,
-        end_time: `${startDate}T${endTime}`,
+        start_time: start,
+        end_time: end,
         capacity: values.capacity || 50,
         creator_id: user.id,
         creator_name: user.name,
@@ -83,9 +98,6 @@ export default function CreateEventPage() {
         <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
           <Card title="Access Denied" style={{ maxWidth: 500, width: "100%", textAlign: "center" }}>
             <p>Please log in to create events</p>
-            <Button type="primary" onClick={() => router.push("/login")}>
-              Go to Login
-            </Button>
           </Card>
         </div>
       </Layout>
