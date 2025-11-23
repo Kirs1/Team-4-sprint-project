@@ -207,6 +207,7 @@ async def create_event(event_data: EventCreate):
             "end_time": event_data.end_time,
             "quantity_left": event_data.capacity,
             "creator_name": event_data.creator_name,
+            "creator_id": event_data.creator_id,
             "created_at": datetime.now().isoformat()
         }
 

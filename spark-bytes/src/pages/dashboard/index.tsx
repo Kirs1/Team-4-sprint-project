@@ -17,137 +17,91 @@ interface Event {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const { data: session } = useSession();
-  const [user, setUser] = useState<any>(session?.user || null);
+  const { data: session, status } = useSession();
+  const userId = session?.user?.id;
+
+  const [loading, setLoading] = useState(true);
   const [interestedEvents, setInterestedEvents] = useState<Event[]>([]);
   const [createdEvents, setCreatedEvents] = useState<Event[]>([]);
-  const [userStats, setUserStats] = useState({ created_events: 0 });
-  const [loading, setLoading] = useState(true);
+  const [userStats, setUserStats] = useState<{ created_events: number }>({
+    created_events: 0,
+  });
+  const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
+  if (!userId) return; // Wait for session to load
 
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch all events
-        const eventsResponse = await fetch("http://127.0.0.1:8000/events");
-        if (!eventsResponse.ok) {
-          throw new Error('Failed to fetch events');
-        }
-        const allEvents = await eventsResponse.json();
+  const fetchDashboard = async () => {
+    try {
+      setLoading(true);
 
-        // Fetch user's created events
-        const createdEventsResponse = await fetch(`http://127.0.0.1:8000/users/${user.id}/created-events`);
-        let userCreatedEvents = [];
-        if (createdEventsResponse.ok) {
-          userCreatedEvents = await createdEventsResponse.json();
-        }
+      const allEventsRes = await fetch("http://127.0.0.1:8000/events");
+      const allEvents = allEventsRes.ok ? await allEventsRes.json() : [];
 
-        // Fetch updated user data to get created_events count
-        const userResponse = await fetch(`http://127.0.0.1:8000/users/${user.id}`);
-        let userData = { created_events: 0 };
-        if (userResponse.ok) {
-          userData = await userResponse.json();
-        }
+      const userRes = await fetch(`http://127.0.0.1:8000/users/${userId}`);
+      const userData = userRes.ok ? await userRes.json() : null;
 
-        // Filter events that user has registered for
-        const userInterestedEvents = allEvents.filter((event: Event) => 
-          Array.isArray(user.registered_events) && user.registered_events.includes(event.id)
-        );
+      const createdRes = await fetch(`http://127.0.0.1:8000/users/${userId}/created-events`);
+      const createdEvents = createdRes.ok ? await createdRes.json() : [];
 
-        setInterestedEvents(userInterestedEvents);
-        setCreatedEvents(userCreatedEvents);
-        setUserStats({
-          created_events: userData.created_events || userCreatedEvents.length
-        });
+      const interested =
+        Array.isArray(userData?.registered_events)
+          ? allEvents.filter((ev: Event) => userData.registered_events.includes(ev.id))
+          : [];
 
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        message.warning('Some data may not be loaded correctly');
-        
-        // Fallback: try to at least get basic events
-        try {
-          const eventsResponse = await fetch("http://127.0.0.1:8000/events");
-          if (eventsResponse.ok) {
-            const allEvents = await eventsResponse.json();
-            const userInterestedEvents = allEvents.filter((event: Event) => 
-              Array.isArray(user.registered_events) && user.registered_events.includes(event.id)
-            );
-            setInterestedEvents(userInterestedEvents);
-            // Use first 2 events as fallback for created events
-            setCreatedEvents(allEvents.slice(0, 2));
-            setUserStats({ created_events: 2 });
-          }
-        } catch (fallbackError) {
-          console.error("Fallback also failed:", fallbackError);
-        }
+      setInterestedEvents(interested);
+      setCreatedEvents(createdEvents);
+
+      setUserStats({
+        created_events: userData?.created_events ?? createdEvents.length,
+      });
+      } catch (err) {
+        console.error("Dashboard fetch failed:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, [user, router]);
+    fetchDashboard();
+  }, [userId]);
 
-  const handleCreateEvent = () => {
-    router.push('/events/create');
-  };
+  if (status === "loading") {
+    return <Layout><div>Loading session...</div></Layout>;
+  }
 
-  if (!user) {
-    return (
-      <Layout>
-        <div className={styles.loading}>Redirecting to login...</div>
-      </Layout>
-    );
+  if (!session?.user) {
+    return <Layout><div>Please log in</div></Layout>;
   }
 
   if (loading) {
-    return (
-      <Layout>
-        <div className={styles.loading}>Loading...</div>
-      </Layout>
-    );
+    return <Layout><div>Loading dashboard...</div></Layout>;
   }
 
   return (
     <Layout>
       <div className={styles.dashboardContainer}>
-        {/* Header Section */}
         <div className={styles.header}>
           <h1>User Dashboard</h1>
           <div className={styles.userInfo}>
             <UserOutlined className={styles.userIcon} />
-            <span className={styles.userName}>{user.name}</span>
+            <span className={styles.userName}>{session.user.name}</span>
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Actions */}
         <div className={styles.actions}>
           <button className={styles.actionButton}>
             <CalendarOutlined /> Manage Notification
           </button>
-          <button 
-            className={styles.actionButton}
-            onClick={handleCreateEvent}
-          >
+          <button className={styles.actionButton} onClick={() => router.push("/events/create")}>
             <ShoppingOutlined /> Create Event
           </button>
         </div>
 
         <Row gutter={[24, 24]} className={styles.dashboardContent}>
-          {/* Interested Events Section */}
+          {/* Interested Events */}
           <Col xs={24} lg={12}>
-            <Card 
-              title="Interested Events" 
-              className={styles.sectionCard}
-              headStyle={{ backgroundColor: '#f0f2f5', borderBottom: '1px solid #d9d9d9' }}
-            >
+            <Card title="Interested Events" className={styles.sectionCard}>
               {interestedEvents.length === 0 ? (
                 <div className={styles.emptyState}>No interested events yet</div>
               ) : (
@@ -158,14 +112,7 @@ export default function DashboardPage() {
                       <div className={styles.eventContent}>
                         <h4 className={styles.eventTitle}>{event.name}</h4>
                         <p className={styles.eventDate}>
-                          {new Date(event.start_time).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })} | {new Date(event.start_time).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            hour12: true
-                          }).replace(':00', '')}
+                          {new Date(event.start_time).toLocaleString()}
                         </p>
                         <p className={styles.eventLocation}>{event.location_name}</p>
                       </div>
@@ -176,26 +123,18 @@ export default function DashboardPage() {
             </Card>
           </Col>
 
-          {/* Stats Section */}
+          {/* Stats + Created Events */}
           <Col xs={24} lg={12}>
-            <Card 
-              title="My Stats" 
-              className={styles.sectionCard}
-              headStyle={{ backgroundColor: '#f0f2f5', borderBottom: '1px solid #d9d9d9' }}
-            >
+            <Card title="My Stats" className={styles.sectionCard}>
               <Row gutter={[16, 16]}>
                 <Col xs={12}>
                   <Statistic
                     title="Created Events"
                     value={userStats.created_events}
-                    prefix={<CalendarOutlined />}
-                    valueStyle={{ color: '#1890ff' }}
                   />
                 </Col>
-                
               </Row>
-              
-              {/* Created Events List */}
+
               <div className={styles.createdEvents}>
                 <h4>Created Events</h4>
                 {createdEvents.length === 0 ? (
