@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException, status
-from db.supabaseclient import supabase
+from .db.supabaseclient import supabase
 from datetime import datetime
-from models.user import User, UserResponse
-from models.event import EventCreate
+from .models.user import User, UserResponse
+from .models.event import EventCreate, EventUpdate
 
 app = FastAPI()
 
@@ -259,6 +259,69 @@ async def create_event(event_data: EventCreate):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating event: {str(e)}"
         )
+
+@app.put("/events/{event_id}")
+async def update_event(event_id: str, event_data: EventUpdate, user_id: str):
+    """
+    Edit an event.
+    user_id: The currently logged-in user ID (passed first using the query param, then modified after receiving the auth parameter).
+    """
+    try:
+        # 1. Check if the event exists
+        event_response = supabase.table("events").select("*").eq("id", event_id).execute()
+        if not event_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Event not found"
+            )
+
+        event = event_response.data[0]
+
+        # 2. Permission check: Only the creator can edit (you can comment this out if it's not needed for now).
+        if event.get("creator_id") != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the event creator can edit this event"
+            )
+
+        # 3. Update only the fields passed in from the front end
+        update_data = event_data.dict(exclude_unset=True)
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No fields provided to update"
+            )
+
+        # 4. Call supabase to update
+        response = supabase.table("events").update(update_data).eq("id", event_id).execute()
+        if not response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update event"
+            )
+
+        updated_event = response.data[0]
+
+        # 5. Maintain the same string processing as other interfaces.
+        updated_event["start_time"] = str(updated_event["start_time"])
+        updated_event["end_time"] = str(updated_event["end_time"])
+        updated_event["location_name"] = str(updated_event["location_name"])
+        updated_event["created_at"] = str(updated_event["created_at"])
+        updated_event["quantity_left"] = str(updated_event["quantity_left"])
+        updated_event["description"] = str(updated_event["description"])
+
+        return {
+            "message": "Event updated successfully",
+            "event": updated_event
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating event: {str(e)}"
+        )
     
 # Update the get user created events endpoint
 @app.get("/users/{user_id}/created-events")
@@ -282,4 +345,55 @@ async def get_user_created_events(user_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching user events: {str(e)}"
+        )
+
+@app.delete("/events/{event_id}")
+async def delete_event(event_id: str, user_id: str):
+    """
+    Delete an event.
+    Only the event creator or an admin can delete the event.
+    """
+    try:
+        # 1. find the event
+        event_response = supabase.table("events").select("*").eq("id", event_id).execute()
+        if not event_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Event not found"
+            )
+
+        event = event_response.data[0]
+
+        # 2. find the user
+        user_response = supabase.table("users").select("id, role").eq("id", user_id).execute()
+        if not user_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        user = user_response.data[0]
+        user_role = user.get("role")
+
+        # 3. permission check
+        is_creator = (event.get("creator_id") == user_id)
+        is_admin = (user_role == "admin")
+
+        if not (is_creator or is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the event creator or an admin can delete this event"
+            )
+
+        # 4. delete the event
+        supabase.table("events").delete().eq("id", event_id).execute()
+
+        return {"message": "Event deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting event: {str(e)}"
         )
