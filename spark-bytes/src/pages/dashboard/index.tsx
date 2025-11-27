@@ -106,16 +106,12 @@ export default function DashboardPage() {
                 <div className={styles.emptyState}>No interested events yet</div>
               ) : (
                 <List
-                  dataSource={interestedEvents}
+                  size="small"
+                  dataSource={interestedEvents}  // ✅ correct list
                   renderItem={(event) => (
-                    <List.Item className={styles.eventItem}>
-                      <div className={styles.eventContent}>
-                        <h4 className={styles.eventTitle}>{event.name}</h4>
-                        <p className={styles.eventDate}>
-                          {new Date(event.start_time).toLocaleString()}
-                        </p>
-                        <p className={styles.eventLocation}>{event.location_name}</p>
-                      </div>
+                    <List.Item>
+                      <span className={styles.createdEventTitle}>{event.name}</span>
+                      <Tag color="green">Interested</Tag>
                     </List.Item>
                   )}
                 />
@@ -144,10 +140,15 @@ export default function DashboardPage() {
                     size="small"
                     dataSource={createdEvents}
                     renderItem={(event) => (
-                      <List.Item>
+                      <List.Item
+                        actions={[
+                          <a onClick={() => router.push(`/events/edit/${event.id}`)}>Edit</a>
+                        ]}
+                      >
                         <span className={styles.createdEventTitle}>{event.name}</span>
                         <Tag color="blue">Active</Tag>
                       </List.Item>
+                   
                     )}
                   />
                 )}
