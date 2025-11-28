@@ -34,24 +34,25 @@ export default function EventsPage() {
           <Empty description="No events available" />
         ) : (
         <Row gutter={[16, 16]}>
-          {events && events.length > 0 ? (
-            events.map((event) => (
-              <Col xs={24} sm={12} md={8} key={event.id}>
-                <Link href={`/events/${event.id}`} style={{ textDecoration: "none" }}>
-                  <EventCard
-                    name={event.name}
-                    start_time={event.start_time}
-                    end_time={event.end_time}
-                    location_name={event.location_name}     
-                    description={event.description}  
-                  />
-                </Link>
-              </Col>
-            ))
-          ) : (
-            <p>Loading events...</p>
-          )}
-        </Row>
+  {events.length === 0 ? (
+    <Empty description="No events available" />
+  ) : (
+    events.map((event) => (
+      <Col xs={24} sm={12} md={8} key={event.id}>
+        <Link href={`/events/${event.id}`} style={{ textDecoration: "none" }}>
+          <EventCard
+            name={event.name}
+            start_time={event.start_time}
+            end_time={event.end_time}
+            location_name={event.location_name}
+            description={event.description}
+            quantity_left={event.quantity_left ?? "N/A"}
+          />
+        </Link>
+      </Col>
+    ))
+  )}
+</Row>
       )}
       </div>
     </Layout>

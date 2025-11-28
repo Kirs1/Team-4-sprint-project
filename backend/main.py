@@ -4,7 +4,14 @@ from datetime import datetime
 from models.user import User, UserResponse
 from models.event import EventCreate, EventUpdate
 
+from pydantic import BaseModel
+
 app = FastAPI()
+
+class RegisterPayload(BaseModel):
+    user_id: str
+
+
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -89,6 +96,11 @@ async def get_user(user_id: str):
             )
         
         user = response.data[0]
+
+        # Ensure registered_events are strings
+        registered_events = user.get("registered_events") or []
+        user["registered_events"] = [str(e) for e in registered_events]
+
         return UserResponse(**user)
             
     except HTTPException:
@@ -109,6 +121,7 @@ def get_events():
     events = response.data
 
     for e in events:
+        e["id"]= str(e["id"])
         e["start_time"] = str(e["start_time"])
         e["end_time"] = str(e["end_time"])
         e["location_name"] = str(e["location_name"])
@@ -346,6 +359,106 @@ async def get_user_created_events(user_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching user events: {str(e)}"
         )
+    
+@app.post("/events/{event_id}/register")
+async def register_event(event_id: str, payload: RegisterPayload):
+    user_id = payload.user_id
+
+    # 1. Fetch the event
+    event_resp = supabase.table("events").select("*").eq("id", event_id).execute()
+    if not event_resp.data:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    event = event_resp.data[0]
+
+    # 2. Check spots
+    if int(event.get("quantity_left", 0)) <= 0:
+        raise HTTPException(status_code=400, detail="No spots left")
+
+    # 3. Fetch user
+    user_resp = supabase.table("users").select("*").eq("id", user_id).execute()
+    if not user_resp.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user = user_resp.data[0]
+    registered = user.get("registered_events", [])
+
+    if event_id in registered:
+        raise HTTPException(status_code=400, detail="Already registered")
+
+    # 4. Register user
+    registered.append(event_id)
+    supabase.table("users").update({"registered_events": registered}).eq("id", user_id).execute()
+    supabase.table("events").update({"quantity_left": int(event["quantity_left"]) - 1}).eq("id", event_id).execute()
+
+    return {"message": "Registered Successfully"}
+
+
+@app.get("/users/{user_id}/interested-events")
+async def get_user_interested_events(user_id: str):
+    """
+    Returns all events that the user has registered for.
+    """
+    try:
+        # 1. Fetch user
+        user_resp = supabase.table("users").select("registered_events").eq("id", user_id).execute()
+        if not user_resp.data:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user = user_resp.data[0]
+        registered_ids = user.get("registered_events", [])
+        
+        if not registered_ids:
+            return []  # no registered events
+
+        # 2. Fetch events the user is registered for
+        events_resp = supabase.table("events").select("*").in_("id", registered_ids).execute()
+        events = events_resp.data
+
+        # 3. Format fields for frontend
+        for e in events:
+            e["start_time"] = str(e.get("start_time"))
+            e["end_time"] = str(e.get("end_time"))
+            e["location_name"] = str(e.get("location_name"))
+            e["created_at"] = str(e.get("created_at"))
+            e["quantity_left"] = str(e.get("quantity_left"))
+            e["description"] = str(e.get("description"))
+
+        return events
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching interested events: {str(e)}"
+        )
+@app.post("/events/{event_id}/unregister")
+async def unregister_event(event_id: str, payload: RegisterPayload):
+    """
+    Removes the user from the event's registered list and increments quantity_left.
+    """
+    user_id = payload.user_id
+
+    # 1. Fetch user
+    user_resp = supabase.table("users").select("*").eq("id", user_id).execute()
+    if not user_resp.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    user = user_resp.data[0]
+    registered = user.get("registered_events", [])
+
+    if event_id not in registered:
+        raise HTTPException(status_code=400, detail="User is not registered for this event")
+
+    # 2. Remove event from user's registered events
+    registered.remove(event_id)
+    supabase.table("users").update({"registered_events": registered}).eq("id", user_id).execute()
+
+    # 3. Increment event quantity_left
+    event_resp = supabase.table("events").select("*").eq("id", event_id).execute()
+    if event_resp.data:
+        event = event_resp.data[0]
+        supabase.table("events").update({"quantity_left": int(event["quantity_left"]) + 1}).eq("id", event_id).execute()
+
+    return {"message": "Successfully unregistered from event"}
 
 @app.delete("/events/{event_id}")
 async def delete_event(event_id: str, user_id: str):
@@ -397,3 +510,6 @@ async def delete_event(event_id: str, user_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting event: {str(e)}"
         )
+    
+
+

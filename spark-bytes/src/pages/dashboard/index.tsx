@@ -35,35 +35,49 @@ export default function DashboardPage() {
     try {
       setLoading(true);
 
+      // 1. Fetch all events
       const allEventsRes = await fetch("http://127.0.0.1:8000/events");
-      const allEvents = allEventsRes.ok ? await allEventsRes.json() : [];
+      const allEvents: Event[] = allEventsRes.ok ? await allEventsRes.json() : [];
 
+      // 2. Fetch user data
       const userRes = await fetch(`http://127.0.0.1:8000/users/${userId}`);
       const userData = userRes.ok ? await userRes.json() : null;
 
+      // 3. Fetch events created by the user
       const createdRes = await fetch(`http://127.0.0.1:8000/users/${userId}/created-events`);
-      const createdEvents = createdRes.ok ? await createdRes.json() : [];
+      const createdEvents: Event[] = createdRes.ok ? await createdRes.json() : [];
 
-      const interested =
-        Array.isArray(userData?.registered_events)
-          ? allEvents.filter((ev: Event) => userData.registered_events.includes(ev.id))
-          : [];
 
-      setInterestedEvents(interested);
-      setCreatedEvents(createdEvents);
+      const interestedRes = await fetch(`http://127.0.0.1:8000/users/${userId}/interested-events`);
+      const interested: Event[] = interestedRes.ok ? await interestedRes.json() : [];
+      setInterestedEvents(
+        interested.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+      );
 
+      // 5. Set created events (sorted by date)
+      const sortedCreated = createdEvents.sort(
+        (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
+      setCreatedEvents(sortedCreated);
+
+      // 6. Set user stats safely
       setUserStats({
         created_events: userData?.created_events ?? createdEvents.length,
       });
-      } catch (err) {
-        console.error("Dashboard fetch failed:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchDashboard();
-  }, [userId]);
+      
+
+    } catch (err) {
+      console.error("Dashboard fetch failed:", err);
+      message.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDashboard();
+}, [userId]);
+
 
   if (status === "loading") {
     return <Layout><div>Loading session...</div></Layout>;
@@ -105,16 +119,41 @@ export default function DashboardPage() {
               {interestedEvents.length === 0 ? (
                 <div className={styles.emptyState}>No interested events yet</div>
               ) : (
-                <List
-                  size="small"
-                  dataSource={interestedEvents}  // ✅ correct list
-                  renderItem={(event) => (
-                    <List.Item>
-                      <span className={styles.createdEventTitle}>{event.name}</span>
-                      <Tag color="green">Interested</Tag>
-                    </List.Item>
-                  )}
-                />
+            <List
+              size="small"
+              dataSource={interestedEvents}
+              renderItem={(event) => (
+                <List.Item
+                  actions={[
+                    <a
+                      key="unregister"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`http://127.0.0.1:8000/events/${event.id}/unregister`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ user_id: userId }),
+                          });
+                          if (!res.ok) throw new Error("Unregister failed");
+
+                          message.success("Unregistered successfully!");
+
+                          // Remove event from local state
+                          setInterestedEvents((prev) => prev.filter((e) => e.id !== event.id));
+                        } catch (err: any) {
+                          message.error(err.message || "Failed to unregister");
+                        }
+                      }}
+                    >
+                      Unregister
+                    </a>
+                  ]}
+                >
+                  <span className={styles.createdEventTitle}>{event.name}</span>
+                  <Tag color="green">Interested</Tag>
+                </List.Item>
+              )}
+            />
               )}
             </Card>
           </Col>
