@@ -9,14 +9,14 @@ Spark! Bytes is made for BU students who want to reserve
 ## How to run Spark! Bytes 
 How to run the frontend 
 
-"""bash
+```bash
 #change directory to spark-bytes 
 cd spark-bytes 
 
 #install the depensdencies
 npm install 
 npm run dev
-"""
+```
 
 How to run the backend
 '''bash
