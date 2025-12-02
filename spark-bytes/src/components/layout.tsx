@@ -68,7 +68,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            backgroundColor: "#001529",
+            backgroundColor: "#e50c08ff",
             padding: "0 2rem",
           }}
         >
@@ -94,7 +94,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <Content
           style={{
             padding: "2rem",
-            background: "#02325fff",
+            background: "#ffffffff",
             flex: "1 0 auto",
           }}
         >

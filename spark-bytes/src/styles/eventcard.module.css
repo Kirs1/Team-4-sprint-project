@@ -1,28 +1,63 @@
 .card {
-  border-radius: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
-  cursor: pointer;
-}
-
-.heading {
-  display: flex;
-  color: aliceblue;
-  justify-content: center;    
-  align-items: center;
 }
 
 .card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
 
-.date {
+/* Hero food image */
+.image {
+  height: 140px;
+  background-image: url("/food-banner.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+.inner {
+  padding: 18px !important;
+}
+
+.title {
+  font-size: 20px;
   font-weight: 600;
-  
   margin-bottom: 6px;
+  color: #333;
 }
 
 .description {
-  color: #555;
-  line-height: 1.5;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+/* Event details */
+.details p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #444;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress {
+  margin: 14px 0;
+}
+
+.button {
+  background-color: #22aa55 !important;
+  border: none !important;
+  font-size: 15px;
+  height: 40px;
+  border-radius: 8px !important;
+}
+
+.button:disabled {
+  background-color: #888 !important;
+  cursor: not-allowed;
 }

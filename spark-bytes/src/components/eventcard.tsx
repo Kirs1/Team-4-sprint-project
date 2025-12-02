@@ -1,7 +1,13 @@
 "use client";
 
-import { Card, Button, message } from "antd";
+import { Card, Button, message, Progress } from "antd";
+import {
+  EnvironmentOutlined,
+  ClockCircleOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
 import { useState } from "react";
+import styles from "../styles/eventcard.module.css";
 
 export default function EventCard({
   id,
@@ -11,8 +17,9 @@ export default function EventCard({
   location_name,
   description,
   quantity_left,
-  onRegister, // optional callback
-  isRegistered, // boolean if user already registered
+  onRegister,
+  isRegistered,
+  total_quantity = 50, // fallback if backend doesn’t provide total
 }: any) {
   const start = start_time ? new Date(start_time).toLocaleString() : "N/A";
   const end = end_time ? new Date(end_time).toLocaleString() : "N/A";
@@ -22,7 +29,6 @@ export default function EventCard({
   const [spotsLeft, setSpotsLeft] = useState(quantity_left);
 
   const handleRegister = async () => {
-    if (!id) return;
     if (spotsLeft <= 0) {
       message.error("No spots left!");
       return;
@@ -33,7 +39,7 @@ export default function EventCard({
       const res = await fetch(`http://127.0.0.1:8000/events/${id}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: "CURRENT_USER_ID" }), // replace with session user id
+        body: JSON.stringify({ user_id: "CURRENT_USER_ID" }),
       });
 
       if (!res.ok) {
@@ -45,30 +51,50 @@ export default function EventCard({
       setRegistered(true);
       setSpotsLeft((prev: number) => prev - 1);
 
-      if (onRegister) onRegister(id); // callback for parent to update dashboard
+      if (onRegister) onRegister(id);
     } catch (err: any) {
-      console.error(err);
       message.error(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
+  const percentFilled = ((total_quantity - spotsLeft) / total_quantity) * 100;
+
   return (
-    <Card title={name || "Unnamed Event"} style={{ borderRadius: "12px", minHeight: "150px" }}>
-      <p>{description || "No description available."}</p>
-      <p><strong>Start:</strong> {start}</p>
-      <p><strong>End:</strong> {end}</p>
-      {location_name && <p><strong>Location:</strong> {location_name}</p>}
-      <p><strong>Spots left:</strong> {spotsLeft}</p>
-      <Button
-        type="primary"
-        onClick={handleRegister}
-        disabled={registered || spotsLeft <= 0}
-        loading={loading}
-      >
-        {registered ? "Registered" : "Register"}
-      </Button>
-    </Card>
+    <div className={styles.card}>
+     
+
+      <Card bordered={false} className={styles.inner}>
+        <h2 className={styles.title}>{name}</h2>
+        <p className={styles.description}>{description}</p>
+
+        <div className={styles.details}>
+          <p>
+            <ClockCircleOutlined /> <strong>Start:</strong> {start}
+          </p>
+          <p>
+            <ClockCircleOutlined /> <strong>End:</strong> {end}
+          </p>
+          <p>
+            <EnvironmentOutlined /> <strong>Location:</strong>{" "}
+            {location_name || "TBA"}
+          </p>
+          <p>
+            <TeamOutlined />{" "}
+            <strong>Spots Left:</strong> {spotsLeft} / {total_quantity}
+          </p>
+        </div>
+
+        <Progress
+          percent={percentFilled}
+          status={spotsLeft > 0 ? "active" : "exception"}
+          strokeColor={spotsLeft > 0 ? "#22aa55" : "#cc0000"}
+          className={styles.progress}
+        />
+
+        
+      </Card>
+    </div>
   );
 }

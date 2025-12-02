@@ -12,70 +12,147 @@ export default function EventDetailPage() {
   const router = useRouter();
   const { id } = router.query;
 
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const userId = session?.user?.id;
 
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [userRegisteredEvents, setUserRegisteredEvents] = useState<string[]>([]);
+  const [isCreator, setIsCreator] = useState(false);
+
+  // Fetch user's registered events when session is available
+  useEffect(() => {
+    if (status === "loading" || !session?.user?.id) return;
+
+    fetch(`http://127.0.0.1:8000/users/${session.user.id}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          console.warn("Could not fetch user data for registration check");
+          return null;
+        }
+        return res.json();
+      })
+      .then((userData) => {
+        if (userData?.registered_events && Array.isArray(userData.registered_events)) {
+          setUserRegisteredEvents(userData.registered_events);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching user registered events:", err);
+      });
+  }, [session, status]);
 
   useEffect(() => {
     if (!id) return;
 
     setLoading(true);
 
-    fetch(`http://127.0.0.1:8000/events/${id}`)
+    fetch(`http://127.0.0.1:8000/events`)
       .then(async (res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!data || data.length === 0) {
+      .then((allEvents) => {
+        if (!allEvents || allEvents.length === 0) {
+          setEvent(null);
+          setLoading(false);
+          return;
+        }
+
+        // Find the specific event by ID - handle both string and number IDs
+        const foundEvent = allEvents.find((evt: any) => {
+          // Try to match as string first, then as number
+          return evt.id.toString() === id || 
+                 parseInt(evt.id) === parseInt(id as string);
+        });
+        
+        if (!foundEvent) {
           setEvent(null);
         } else {
-          const evt = Array.isArray(data) ? data[0] : data;
-          setEvent(evt);
+          setEvent(foundEvent);
+
+          // Check if user is the creator of this event
+          if (session?.user?.id && foundEvent.creator_id === session.user.id) {
+            setIsCreator(true);
+          }
 
           // Check if user is already registered
-          if (session?.user && evt.registered_users?.includes(userId)) {
-            setIsRegistered(true);
+          if (session?.user?.id) {
+            const eventIdStr = foundEvent.id.toString();
+            const isUserRegistered = userRegisteredEvents.includes(eventIdStr);
+            setIsRegistered(isUserRegistered);
           }
         }
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error fetching event:", err);
+        console.error("Error fetching events:", err);
         setEvent(null);
         setLoading(false);
       });
-  }, [id, session, userId]);
+  }, [id, session, userRegisteredEvents]);
 
   const handleRegister = async () => {
-    if (!userId || !event) return;
+    if (!session?.user?.id) {
+      message.error("Please log in to register for events");
+      return;
+    }
 
-    if (event.quantity_left <= 0) {
+    if (!event) {
+      message.error("Event not found");
+      return;
+    }
+
+    // Prevent creators from registering for their own events
+    if (isCreator) {
+      message.error("You cannot register for events you created");
+      return;
+    }
+
+    // Convert quantity_left to number for comparison
+    const quantityLeft = parseInt(event.quantity_left) || 0;
+    if (quantityLeft <= 0) {
       message.error("No spots left!");
+      return;
+    }
+
+    if (isRegistered) {
+      message.info("You are already registered for this event");
       return;
     }
 
     setRegistering(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/events/${id}/register`, {
+      const response = await fetch(`http://127.0.0.1:8000/events/${event.id}/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: session.user.id }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ 
+          user_id: session.user.id 
+        }),
       });
 
-      if (!res.ok) throw new Error("Registration failed");
+      const data = await response.json();
 
-      message.success("Registered successfully!");
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || "Registration failed");
+      }
+
+      message.success(data.message || "Registered successfully!");
       setIsRegistered(true);
+      
+      // Update the user's registered events list locally
+      setUserRegisteredEvents([...userRegisteredEvents, event.id.toString()]);
+      
+      // Update event quantity left
       setEvent((prev: any) => ({
         ...prev,
-        quantity_left: prev.quantity_left - 1,
-        registered_users: [...(prev.registered_users || []), userId],
+        quantity_left: (quantityLeft - 1).toString(),
       }));
     } catch (err: any) {
-      console.error(err);
-      message.error(err.message || "Failed to register");
+      console.error("Registration error:", err);
+      message.error(err.message || "Failed to register. Please try again.");
     } finally {
       setRegistering(false);
     }
@@ -85,7 +162,7 @@ export default function EventDetailPage() {
     return (
       <Layout>
         <div style={{ padding: "40px", textAlign: "center" }}>
-          <p>Loading...</p>
+          <p>Loading event details...</p>
         </div>
       </Layout>
     );
@@ -96,11 +173,33 @@ export default function EventDetailPage() {
       <Layout>
         <div style={{ padding: "40px", textAlign: "center" }}>
           <h2>Event not found</h2>
-          <p>The event you’re looking for does not exist.</p>
+          <p>The event you're looking for does not exist.</p>
+          <Button type="primary" onClick={() => router.push("/events")}>
+            Back to Events
+          </Button>
         </div>
       </Layout>
     );
   }
+
+  // Determine button state and text
+  const getButtonState = () => {
+    if (!session?.user?.id) {
+      return { text: "Login to Register", disabled: true };
+    }
+    if (isCreator) {
+      return { text: "You Created This Event", disabled: true };
+    }
+    if (isRegistered) {
+      return { text: "Registered ✓", disabled: true };
+    }
+    if (parseInt(event.quantity_left) <= 0) {
+      return { text: "Full", disabled: true };
+    }
+    return { text: "Register Now", disabled: false };
+  };
+
+  const buttonState = getButtonState();
 
   return (
     <Layout>
@@ -108,26 +207,97 @@ export default function EventDetailPage() {
         <Card
           title={<Title level={2}>{event.name}</Title>}
           bordered={false}
-          style={{ maxWidth: 600, width: "100%", textAlign: "left" }}
+          style={{ maxWidth: 700, width: "100%", textAlign: "left" }}
         >
           <Paragraph>
-            <strong>Date:</strong> {event.start_time ? new Date(event.start_time).toLocaleString() : "N/A"}
+            <strong>Date & Time:</strong> {event.start_time ? new Date(event.start_time).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            }) : "N/A"}
           </Paragraph>
+          
+          {event.end_time && (
+            <Paragraph>
+              <strong>Ends:</strong> {new Date(event.end_time).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })}
+            </Paragraph>
+          )}
+          
           <Paragraph>
             <strong>Location:</strong> {event.location_name}
           </Paragraph>
-          <Paragraph>{event.description}</Paragraph>
+          
           <Paragraph>
-            <strong>Spots left:</strong> {event.quantity_left}
+            <strong>Description:</strong> {event.description}
           </Paragraph>
-          <Button
-            type="primary"
-            onClick={handleRegister}
-            disabled={isRegistered || event.quantity_left <= 0}
-            loading={registering}
-          >
-            {isRegistered ? "Registered" : "Register"}
-          </Button>
+          
+          <Paragraph>
+            <strong>Available Spots:</strong> {event.quantity_left}
+          </Paragraph>
+          
+          {isCreator && (
+            <Paragraph style={{ color: "#1890ff", fontWeight: "bold" }}>
+              ✨ You created this event
+            </Paragraph>
+          )}
+          
+          <div style={{ marginTop: "20px" }}>
+            <Button
+              type="primary"
+              disabled={buttonState.disabled}
+              loading={registering}
+              style={{
+                backgroundColor: isRegistered ? "#52c41a" : isCreator ? "#1890ff" : undefined,
+                borderColor: isRegistered ? "#52c41a" : isCreator ? "#1890ff" : undefined,
+                cursor: buttonState.disabled ? "not-allowed" : "pointer",
+                minWidth: "160px"
+              }}
+              onClick={buttonState.disabled ? undefined : handleRegister}
+              size="large"
+            >
+              {buttonState.text}
+            </Button>
+            
+            {!session?.user?.id && (
+              <Paragraph style={{ marginTop: "10px", color: "#fa8c16" }}>
+                Please log in to register for this event
+              </Paragraph>
+            )}
+            
+            {isCreator && (
+              <Paragraph style={{ marginTop: "10px", color: "#1890ff", fontWeight: "bold" }}>
+                As the event creator, you cannot register for your own event
+              </Paragraph>
+            )}
+            
+            {isRegistered && !isCreator && (
+              <Paragraph style={{ marginTop: "10px", color: "#52c41a", fontWeight: "bold" }}>
+                ✅ You are registered for this event
+              </Paragraph>
+            )}
+            
+            {parseInt(event.quantity_left) <= 0 && !isRegistered && !isCreator && (
+              <Paragraph style={{ marginTop: "10px", color: "#ff4d4f", fontWeight: "bold" }}>
+                ❌ This event is full
+              </Paragraph>
+            )}
+          </div>
+          
+          <div style={{ marginTop: "30px" }}>
+            <Button onClick={() => router.push("/events")}>
+              Back to All Events
+            </Button>
+          </div>
         </Card>
       </div>
     </Layout>
