@@ -8,6 +8,7 @@ Spark! Bytes is made for BU students who want to reserve
 
 ## How to run Spark! Bytes 
 How to run the frontend 
+
 '''bash
 #change directory to spark-bytes 
 cd spark-bytes 
