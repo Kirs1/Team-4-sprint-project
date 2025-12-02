@@ -29,6 +29,7 @@ Users can view upcoming events, see details (location, time), and decide whether
 - **Database:** Supabase (PostgreSQL)
 - **Other:** Uvicorn, dotenv, Docker(If use)
 
+# Getting Started
 ## 1.Prerequisites
 
 Before running this project locally, make sure you have:
@@ -80,6 +81,29 @@ npm run dev
 Frontend will be available at: http://localhost:3000
 
 Make sure your backend is running on port 8000 so the frontend can call the API.
+
+## Environment Variables
+......
+
+## API Overview
+
+Here are some example endpoints (update according to your real routes):
+
+| Method | Endpoint      | Description                     |
+|--------|---------------|---------------------------------|
+| GET    | `/events`     | Get all upcoming events         |
+| GET    | `/events/{id}` | Get details for a single event |
+| POST   | `/events`     | Create a new event (admin)      |
+| PUT    | `/events/{id}` | Update an event (admin)        |
+| DELETE | `/events/{id}` | Delete an event (admin)        |
+
+If you use FastAPI’s automatic docs, you can access:
+
+- **Swagger UI:** `http://127.0.0.1:8000/docs`
+- **ReDoc:** `http://127.0.0.1:8000/redoc`
+
+## Testing
+......
 
 
   
