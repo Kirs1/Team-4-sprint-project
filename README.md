@@ -90,8 +90,8 @@ GOOGLE_CLIENT_SECRET=
 
 # Run the frontend dev server
 npm run dev
-# or
-# yarn dev
+ or
+yarn dev
 
 ```
 Frontend will be available at: http://localhost:3000
