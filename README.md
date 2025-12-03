@@ -80,6 +80,7 @@ First create a .env.local file by doing:
 ```bash
 touch .env.local
 ```
+```
 
 After add the google auth client:
 ```bash
@@ -91,7 +92,7 @@ Run the frontend dev server
 ```
 
 npm run dev
- or
+or
 yarn dev
 
 ```
