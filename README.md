@@ -87,7 +87,7 @@ AUTH_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 ```
-
+```
 # Run the frontend dev server
 npm run dev
  or
