@@ -81,7 +81,7 @@ First create a .env.local file by doing:
 touch .env.local
 ```
 
-#After add the google auth client:
+After add the google auth client:
 ```bash
 AUTH_SECRET=
 GOOGLE_CLIENT_ID=
