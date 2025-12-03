@@ -72,6 +72,22 @@ npm install
 # or
 # yarn install
 
+
+
+## Environment Variables
+
+First create a .env.local file by doing:
+```bash
+touch .env.local
+```
+
+After add the google auth client:
+```bash
+AUTH_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
+
 # Run the frontend dev server
 npm run dev
 # or
@@ -81,9 +97,7 @@ npm run dev
 Frontend will be available at: http://localhost:3000
 
 Make sure your backend is running on port 8000 so the frontend can call the API.
-
-## Environment Variables
-......
+The reason why we choose to do google auth only is to only 
 
 ## API Overview
 
