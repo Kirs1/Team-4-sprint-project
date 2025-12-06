@@ -196,6 +196,9 @@ export default function DashboardPage() {
           </Col>
         </Row>
       </div>
-    </Layout>
+      <div className="py-12 text-center">
+  
+</div>
+</Layout>
   );
 }
