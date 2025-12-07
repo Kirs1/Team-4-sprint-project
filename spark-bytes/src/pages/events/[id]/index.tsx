@@ -150,6 +150,23 @@ export default function EventDetailPage() {
         ...prev,
         quantity_left: (quantityLeft - 1).toString(),
       }));
+      
+      // Send notification email using internal notif API
+      try {
+        await fetch("/api/auth/notif", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: session?.user?.email || session?.user?.id,
+            name: session?.user?.name || session?.user?.email || "User",
+            subject: `Registered: ${event.name}`,
+            intro: `You have successfully registered for the event \"${event.name}\".`,
+            content: `Event details:\nDate: ${event.start_time ? new Date(event.start_time).toLocaleString() : 'TBD'}\nLocation: ${event.location_name}`,
+          }),
+        });
+      } catch (notifErr) {
+        console.error("Failed to send notification:", notifErr);
+      }
     } catch (err: any) {
       console.error("Registration error:", err);
       message.error(err.message || "Failed to register. Please try again.");
