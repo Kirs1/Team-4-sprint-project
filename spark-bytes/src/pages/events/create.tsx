@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Form, Input, DatePicker, Button, Card, Space, message, TimePicker, InputNumber } from "antd";
+import { Form, Input, DatePicker, Button, Card, Space, message, TimePicker, InputNumber, Radio } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
@@ -236,25 +236,70 @@ export default function CreateEventPage() {
                         {(itemFields, { add: addItem, remove: removeItem }) => (
                           <>
                             {itemFields.map(({ key: itemKey, name: itemName, ...itemRest }) => (
-                              <Space
+                              <Card
                                 key={itemKey}
-                                style={{ display: "flex", marginBottom: 8 }}
-                                align="baseline"
+                                size="small"
+                                style={{ marginBottom: 12 }}
+                                title={`Food Item ${itemName + 1}`}
+                                extra={
+                                  <MinusCircleOutlined
+                                    onClick={() => removeItem(itemName)}
+                                    style={{ color: "red" }}
+                                  />
+                                }
                               >
-                                <Form.Item
-                                  {...itemRest}
-                                  name={[itemName, "foodName"]}
-                                  rules={[
-                                    { required: true, message: "Enter a food item" },
-                                  ]}
-                                >
-                                  <Input placeholder="Food item name" />
-                                </Form.Item>
-                                <MinusCircleOutlined
-                                  onClick={() => removeItem(itemName)}
-                                />
-                              </Space>
+                                <Space direction="vertical" style={{ width: "100%" }} size={10}>
+                                  {/* Food name (required) */}
+                                  <Form.Item
+                                    {...itemRest}
+                                    label="Food name"
+                                    name={[itemName, "foodName"]}
+                                    rules={[{ required: true, message: "Please enter food name" }]}
+                                  >
+                                    <Input placeholder="e.g., Pizza" />
+                                  </Form.Item>
+
+                                  {/* Allergies (required) */}
+                                  <Form.Item
+                                    {...itemRest}
+                                    label="Any allergies"
+                                    name={[itemName, "allergies"]}
+                                    rules={[
+                                      { required: true, message: "Please specify allergies (type 'None' if not applicable)" },
+                                    ]}
+                                  >
+                                    <Input placeholder="e.g., Dairy, Nuts, Egg, or None" />
+                                  </Form.Item>
+
+                                  {/* Kosher (required Yes/No) */}
+                                  <Form.Item
+                                    {...itemRest}
+                                    label="Is this kosher?"
+                                    name={[itemName, "kosher"]}
+                                    rules={[{ required: true, message: "Please select kosher status" }]}
+                                  >
+                                    <Radio.Group optionType="button" buttonStyle="solid">
+                                      <Radio value={true}>Yes</Radio>
+                                      <Radio value={false}>No</Radio>
+                                    </Radio.Group>
+                                  </Form.Item>
+
+                                  {/* Halal (required Yes/No) */}
+                                  <Form.Item
+                                    {...itemRest}
+                                    label="Is this halal?"
+                                    name={[itemName, "halal"]}
+                                    rules={[{ required: true, message: "Please select halal status" }]}
+                                  >
+                                    <Radio.Group optionType="button" buttonStyle="solid">
+                                      <Radio value={true}>Yes</Radio>
+                                      <Radio value={false}>No</Radio>
+                                    </Radio.Group>
+                                  </Form.Item>
+                                </Space>
+                              </Card>
                             ))}
+
 
                             <Form.Item>
                               <Button
