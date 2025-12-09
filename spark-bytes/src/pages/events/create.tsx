@@ -196,7 +196,7 @@ export default function CreateEventPage() {
                       marginBottom: 8,
                     }}
                   >
-                    <h3 style={{ margin: 0 }}>Food Categories (Optional)</h3>
+                    <h3 style={{ margin: 0 }}>Food Categories</h3>
                     <Button
                       type="dashed"
                       onClick={() => add()}
@@ -220,16 +220,11 @@ export default function CreateEventPage() {
                             ]}
                             noStyle
                           >
-                            <Input placeholder="Category name" />
+                            
                           </Form.Item>
                         </Space>
                       }
-                      extra={
-                        <MinusCircleOutlined
-                          onClick={() => remove(name)}
-                          style={{ color: "red" }}
-                        />
-                      }
+
                     >
                       {/* Nested Form.List for items */}
                       <Form.List name={[name, "items"]}>
