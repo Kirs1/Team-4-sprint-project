@@ -63,30 +63,31 @@ source venv/bin/activate
 
 For Windows:
 venv\Scripts\activate
-'''
-
+```
+## 4. Installing Dependencies 
 ```bash
 #4 Installing Dependencies 
 pip install -r requirements.txt
 
 #Run the backend server
 uvicorn main:app --reload --port 8000
-
 ```
 Backend will be available at: http://127.0.0.1:8000
 
-## 4. Frontend Setup
+
+## 5. Frontend Setup
 ```bash
-cd ../spark-bytes
+In a seperate terminal
+cd spark-bytes
 
 # Install dependencies
 npm install
 # or
-# yarn install
+yarn install
+```
 
 
-
-## Environment Variables
+## Setting up Environment Variables
 
 First create a .env.local file by doing:
 ```bash
