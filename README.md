@@ -58,10 +58,10 @@ cd backend
 python3 -m venv .venv
 
 #Activating the virtual Enviornment
-For Mac/Linux:
+#For Mac/Linux:
 source venv/bin/activate
 
-For Windows:
+#For Windows:
 venv\Scripts\activate
 ```
 ## 4. Installing Dependencies 
@@ -77,7 +77,7 @@ Backend will be available at: http://127.0.0.1:8000
 
 ## 5. Frontend Setup
 ```bash
-In a seperate terminal
+#In a seperate terminal
 cd spark-bytes
 
 # Install dependencies
@@ -89,20 +89,28 @@ yarn install
 
 ## Setting up Environment Variables
 
-First create a .env.local file by doing:
+First create a .env.local file in the frontend by doing:
 ```bash
+cd spark-bytes
 touch .env.local
 ```
 
 After add the google auth client:
 ```bash
-AUTH_SECRET=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-```
-Run the frontend dev server
+AUTH_SECRET=your_auth_secret_here
+GOOGLE_CLIENT=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 ```
 
+And add the Mailgun:
+```bash
+API_KEY_MAILGUN=your_mailgun_api_key_here
+SANDBOX_DOMAIN=your_sandbox_domain_here
+```
+
+
+Run the frontend dev server
+```
 npm run dev
 or
 yarn dev
