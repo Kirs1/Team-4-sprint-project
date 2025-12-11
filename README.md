@@ -121,25 +121,20 @@ Frontend will be available at: http://localhost:3000
 Make sure your backend is running on port 8000 so the frontend can call the API.
 The reason why we choose to do google auth only is to only 
 
-## API Overview
 
-Here are some example endpoints (update according to your real routes):
+## Frontend Testing
 
-| Method | Endpoint      | Description                     |
-|--------|---------------|---------------------------------|
-| GET    | `/events`     | Get all upcoming events         |
-| GET    | `/events/{id}` | Get details for a single event |
-| POST   | `/events`     | Create a new event (admin)      |
-| PUT    | `/events/{id}` | Update an event (admin)        |
-| DELETE | `/events/{id}` | Delete an event (admin)        |
+We use **Jest** and **React Testing Library** to test the frontend.
 
-If you use FastAPI’s automatic docs, you can access:
+### How to run the tests
 
-- **Swagger UI:** `http://127.0.0.1:8000/docs`
-- **ReDoc:** `http://127.0.0.1:8000/redoc`
+From the `spark-bytes` directory:
 
-## Testing
-......
+```bash
+npm install
+npm test
+```
+This runs all test files under src/__tests__/.
 
 
   
