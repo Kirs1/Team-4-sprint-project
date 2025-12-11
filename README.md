@@ -1,6 +1,6 @@
 # Spark! Bytes – Team 4 Sprint Project
 
-A web application for reducing food waste on BU’s campus by notifying students and staff when there is leftover food from dining halls or events.
+A web application for reducing food waste on BU’s campus by notifying students and staff when there is leftover food from dining halls or events. Created by students for students!
 
 ## Project Overview
 
@@ -13,6 +13,7 @@ Users can view upcoming events, see details (location, time), and decide whether
   - View a list of upcoming leftover food events
   - See event details (location, time, food description)
   - User account dashboard (view past / upcoming events you joined or created)
+  - Register for an event
 
 - **Admin-facing**
   - Admin login
@@ -38,27 +39,38 @@ Before running this project locally, make sure you have:
 - **Node.js** 18 or higher (with npm)
 - **Git** (to clone the repository)
 - **Access to the team’s Supabase project** (Supabase URL + anon key)
+- **Access to Mailgun API key and Sandbox domain**
+- **Access to Google client for authentication**
 
 ## 2. Clone the Repository
 
 ```bash
 git clone <REPO_URL>
 cd Team-4-sprint-project
-
 ```
-
-Replace <REPO_URL> with actual GitHub repo URL.
-For example, with SSH, you can type git clone git@github.com:Kirs1/Team-4-sprint-project.git
 
 ## 3. Backend Setup
 ```bash
+#Setting up your backend
 cd backend
 
-#Install dependencies
+#Creating the Virtual Enviornment:
+python3 -m venv .venv
+
+#Activating the virtual Enviornment
+For Mac/Linux:
+source venv/bin/activate
+
+For Windows:
+venv\Scripts\activate
+'''
+
+```bash
+#4 Installing Dependencies 
 pip install -r requirements.txt
 
 #Run the backend server
-uvicorn backend.main:app --reload --port 8000
+uvicorn main:app --reload --port 8000
 
 ```
 Backend will be available at: http://127.0.0.1:8000
