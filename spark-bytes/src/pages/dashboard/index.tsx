@@ -132,9 +132,7 @@ export default function DashboardPage() {
 
         {/* Actions */}
         <div className={styles.actions}>
-          <button className={styles.actionButton} onClick={sendNotification}>
-            <CalendarOutlined /> Manage Notification
-          </button>
+
           <button className={styles.actionButton} onClick={() => router.push("/events/create")}>
             <ShoppingOutlined /> Create Event
           </button>
