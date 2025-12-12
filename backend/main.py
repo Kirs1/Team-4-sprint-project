@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, status
 from db.supabaseclient import supabase
 from datetime import datetime
 from models.user import User, UserResponse
-from models.event import EventCreate, EventUpdate
+from models.event import EventCreate, EventUpdate, FoodItem
 
 from pydantic import BaseModel
 
@@ -95,13 +95,39 @@ async def get_user(user_id: str):
                 detail="User not found"
             )
         
-        user = response.data[0]
+        raw_user = response.data[0]
 
-        # Ensure registered_events are strings
-        registered_events = user.get("registered_events") or []
-        user["registered_events"] = [str(e) for e in registered_events]
+        # Normalize registered_events
+        registered_events_raw = raw_user.get("registered_events") or []
+        if isinstance(registered_events_raw, str):
+            try:
+                import json
+                parsed = json.loads(registered_events_raw)
+                if isinstance(parsed, list):
+                    registered_events_raw = parsed
+                else:
+                    registered_events_raw = []
+            except Exception:
+                registered_events_raw = []
+        elif not isinstance(registered_events_raw, list):
+            registered_events_raw = []
 
-        return UserResponse(**user)
+        # Normalize created_events
+        created_raw = raw_user.get("created_events", 0)
+        try:
+            created_val = int(created_raw) if created_raw not in (None, "") else 0
+        except (TypeError, ValueError):
+            created_val = 0
+
+        user_payload = {
+            "email": raw_user.get("email") or "",
+            "name": raw_user.get("full_name") or "",  # Supabase uses full_name
+            "role": raw_user.get("role") or "student",
+            "registered_events": [str(e) for e in registered_events_raw],
+            "created_events": created_val,
+        }
+
+        return UserResponse(**user_payload)
             
     except HTTPException:
         raise
@@ -119,9 +145,26 @@ def get_events():
     response = supabase.table("events").select("*").execute()
 
     events = response.data
+    if not events:
+        return []
+
+    # Fetch related food items in one query
+    event_ids = [e["id"] for e in events]
+    food_items_map = {}
+    food_resp = supabase.table("food_items").select("*").in_("event_id", event_ids).execute()
+    for item in (food_resp.data or []):
+        event_id = str(item.get("event_id"))
+        food_items_map.setdefault(event_id, []).append({
+            "id": item.get("id"),
+            "name": item.get("name"),
+            "allergy_info": item.get("allergy_info"),
+            "is_kosher": item.get("is_kosher"),
+            "is_halal": item.get("is_halal"),
+            "category": item.get("category"),
+        })
 
     for e in events:
-        e["id"]= str(e["id"])
+        e["id"] = str(e["id"])
         e["start_time"] = str(e["start_time"])
         e["end_time"] = str(e["end_time"])
         e["location_name"] = str(e["location_name"])
@@ -129,6 +172,7 @@ def get_events():
         e["created_at"] = str(e["created_at"])
         e["quantity_left"] = str(e["quantity_left"])
         e["description"] = str(e["description"])
+        e["food_items"] = food_items_map.get(e["id"], [])
 
     return events
 
@@ -138,6 +182,21 @@ def get_event(event_id: str):
     response = supabase.table("events").select("*").eq("id", event_id).execute()
 
     events = response.data
+    if not events:
+        return []
+
+    # Fetch food items for this event
+    food_resp = supabase.table("food_items").select("*").eq("event_id", event_id).execute()
+    food_items = []
+    for item in (food_resp.data or []):
+        food_items.append({
+            "id": item.get("id"),
+            "name": item.get("name"),
+            "allergy_info": item.get("allergy_info"),
+            "is_kosher": item.get("is_kosher"),
+            "is_halal": item.get("is_halal"),
+            "category": item.get("category"),
+        })
 
     for e in events:
         e["start_time"] = str(e["start_time"])
@@ -147,6 +206,7 @@ def get_event(event_id: str):
         e["created_at"] = str(e["created_at"])
         e["quantity_left"] = str(e["quantity_left"])
         e["description"] = str(e["description"])
+        e["food_items"] = food_items
 
     return events
 
@@ -228,6 +288,31 @@ async def create_event(event_data: EventCreate):
         response = supabase.table("events").insert(event_dict).execute()
         
         if response.data:
+            new_event = response.data[0]
+            
+            # Insert related food items if provided
+            if event_data.food_items:
+                food_rows = []
+                for item in event_data.food_items:
+                    # Skip empty rows to avoid DB errors on required columns
+                    if not item or not item.name:
+                        continue
+                    food_rows.append({
+                        "name": item.name,
+                        "allergy_info": item.allergy_info,
+                        "is_kosher": item.is_kosher,
+                        "is_halal": item.is_halal,
+                        "event_id": new_event["id"],
+                    })
+
+                if food_rows:
+                    food_insert_resp = supabase.table("food_items").insert(food_rows).execute()
+                    if not food_insert_resp.data:
+                        raise HTTPException(
+                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Failed to create food items"
+                        )
+
             # Update user's created_events count - handle None/undefined case safely
             user = user_response.data[0]
             current_created_events = user.get("created_events", 0)
@@ -250,7 +335,7 @@ async def create_event(event_data: EventCreate):
             if update_response.data:
                 return {
                     "message": "Event created successfully",
-                    "event": response.data[0]
+                    "event": new_event
                 }
             else:
                 # Rollback event creation if user update fails
@@ -511,5 +596,3 @@ async def delete_event(event_id: str, user_id: str):
             detail=f"Error deleting event: {str(e)}"
         )
     
-
-

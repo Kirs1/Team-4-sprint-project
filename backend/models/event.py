@@ -1,5 +1,12 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
+
+class FoodItem(BaseModel):
+    name: str
+    allergy_info: Optional[str] = None
+    is_kosher: Optional[bool] = None
+    is_halal: Optional[bool] = None
+    category: Optional[str] = None  # kept optional for forward compatibility
 
 class EventCreate(BaseModel):
     name: str
@@ -10,6 +17,7 @@ class EventCreate(BaseModel):
     capacity: int
     creator_id: str
     creator_name: str
+    food_items: Optional[List[FoodItem]] = None
 
 class EventUpdate(BaseModel):
     name: Optional[str] = None
@@ -18,6 +26,7 @@ class EventUpdate(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     capacity: Optional[int] = None
+    food_items: Optional[List[FoodItem]] = None
 
 class EventResponse(BaseModel):
     id: str

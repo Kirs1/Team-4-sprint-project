@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Row, Col, Card, Statistic, List, Tag, message } from "antd";
 import { UserOutlined, CalendarOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Layout from "../../components/layout";
 import styles from "../../styles/dashboard.module.css";
@@ -125,9 +126,13 @@ export default function DashboardPage() {
               renderItem={(event) => (
                 <List.Item
                   actions={[
+                    <Link key="view" href={`/events/${event.id}`}>
+                      View
+                    </Link>,
                     <a
                       key="unregister"
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.preventDefault();
                         try {
                           const res = await fetch(`http://127.0.0.1:8000/events/${event.id}/unregister`, {
                             method: "POST",

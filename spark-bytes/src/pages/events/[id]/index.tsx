@@ -253,11 +253,28 @@ export default function EventDetailPage() {
           <Paragraph>
             <strong>Location:</strong> {event.location_name}
           </Paragraph>
-          
+
           <Paragraph>
             <strong>Description:</strong> {event.description}
           </Paragraph>
-          
+
+          {Array.isArray(event.food_items) && event.food_items.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <strong>Food Items:</strong>
+              <ul style={{ marginTop: 8 }}>
+                {event.food_items.map((food: any) => (
+                  <li key={food.id || food.name}>
+                    {food.name}
+                    {food.category ? ` (${food.category})` : ""}
+                    {food.allergy_info ? ` — Allergy: ${food.allergy_info}` : ""}
+                    {food.is_kosher !== undefined ? ` | Kosher: ${food.is_kosher ? "Yes" : "No"}` : ""}
+                    {food.is_halal !== undefined ? ` | Halal: ${food.is_halal ? "Yes" : "No"}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <Paragraph>
             <strong>Available Spots:</strong> {event.quantity_left}
           </Paragraph>

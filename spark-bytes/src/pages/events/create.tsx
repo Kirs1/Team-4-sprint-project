@@ -46,6 +46,17 @@ export default function CreateEventPage() {
         .format("YYYY-MM-DDTHH:mm:ss[Z]");
 
       
+      const foodItems =
+        (values.foodCategories || []).flatMap((category: any) =>
+          (category?.items || []).map((item: any) => ({
+            name: item.foodName,
+            allergy_info: item.allergies,
+            is_kosher: item.kosher,
+            is_halal: item.halal,
+            category: category?.category || undefined,
+          }))
+        );
+
       const eventData = {
         name: values.title,
         description: values.description,
@@ -55,6 +66,7 @@ export default function CreateEventPage() {
         capacity: values.capacity || 50,
         creator_id: user.id,
         creator_name: user.name,
+        food_items: foodItems,
       };
 
       // Send POST request to create event
@@ -215,12 +227,9 @@ export default function CreateEventPage() {
                           <Form.Item
                             {...restField}
                             name={[name, "category"]}
-                            rules={[
-                              { required: true, message: "Enter a category name" },
-                            ]}
                             noStyle
                           >
-                            
+                            <Input placeholder="Category (optional)" />
                           </Form.Item>
                         </Space>
                       }
