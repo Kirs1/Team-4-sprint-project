@@ -5,6 +5,7 @@ import { Card, Typography, Button, message } from "antd";
 import Layout from "../../../components/layout";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { API_BASE } from "../../../lib/api";
 
 const { Title, Paragraph } = Typography;
 
@@ -26,7 +27,7 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (status === "loading" || !session?.user?.id) return;
 
-    fetch(`http://127.0.0.1:8000/users/${session.user.id}`)
+    fetch(`${API_BASE}/users/${session.user.id}`)
       .then(async (res) => {
         if (!res.ok) {
           console.warn("Could not fetch user data for registration check");
@@ -49,7 +50,7 @@ export default function EventDetailPage() {
 
     setLoading(true);
 
-    fetch(`http://127.0.0.1:8000/events`)
+    fetch(`${API_BASE}/events`)
       .then(async (res) => (res.ok ? res.json() : null))
       .then((allEvents) => {
         if (!allEvents || allEvents.length === 0) {
@@ -122,7 +123,7 @@ export default function EventDetailPage() {
 
     setRegistering(true);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/events/${event.id}/register`, {
+      const response = await fetch(`${API_BASE}/events/${event.id}/register`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -222,7 +223,7 @@ export default function EventDetailPage() {
     if (!session?.user?.id) return;
     if (!confirm("Delete this event? This cannot be undone.")) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/events/${event.id}?user_id=${session.user.id}`, {
+      const res = await fetch(`${API_BASE}/events/${event.id}?user_id=${session.user.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {

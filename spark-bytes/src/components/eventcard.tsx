@@ -8,6 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useState } from "react";
 import styles from "../styles/eventcard.module.css";
+import { API_BASE } from "../lib/api";
 
 export default function EventCard({
   id,
@@ -36,7 +37,7 @@ export default function EventCard({
 
     setLoading(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/events/${id}/register`, {
+      const res = await fetch(`${API_BASE}/events/${id}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: "CURRENT_USER_ID" }),

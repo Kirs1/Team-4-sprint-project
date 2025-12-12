@@ -7,6 +7,7 @@ import styles from "../../styles/eventcard.module.css";
 import Layout from "../../components/layout";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { API_BASE } from "../../lib/api";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
@@ -16,7 +17,7 @@ export default function EventsPage() {
   const [filterHalal, setFilterHalal] = useState(false);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/events")
+    fetch(`${API_BASE}/events`)
       .then((res) => res.json())
       .then((data) => {
         setEvents(data);

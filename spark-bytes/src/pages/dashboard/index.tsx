@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Layout from "../../components/layout";
 import styles from "../../styles/dashboard.module.css";
+import { API_BASE } from "../../lib/api";
 
 interface Event {
   id: string;
@@ -37,19 +38,19 @@ export default function DashboardPage() {
       setLoading(true);
 
       // 1. Fetch all events
-      const allEventsRes = await fetch("http://127.0.0.1:8000/events");
+      const allEventsRes = await fetch(`${API_BASE}/events`);
       const allEvents: Event[] = allEventsRes.ok ? await allEventsRes.json() : [];
 
       // 2. Fetch user data
-      const userRes = await fetch(`http://127.0.0.1:8000/users/${userId}`);
+      const userRes = await fetch(`${API_BASE}/users/${userId}`);
       const userData = userRes.ok ? await userRes.json() : null;
 
       // 3. Fetch events created by the user
-      const createdRes = await fetch(`http://127.0.0.1:8000/users/${userId}/created-events`);
+      const createdRes = await fetch(`${API_BASE}/users/${userId}/created-events`);
       const createdEvents: Event[] = createdRes.ok ? await createdRes.json() : [];
 
 
-      const interestedRes = await fetch(`http://127.0.0.1:8000/users/${userId}/interested-events`);
+      const interestedRes = await fetch(`${API_BASE}/users/${userId}/interested-events`);
       const interested: Event[] = interestedRes.ok ? await interestedRes.json() : [];
       setInterestedEvents(
         interested.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
@@ -159,7 +160,7 @@ export default function DashboardPage() {
                       onClick={async (e) => {
                         e.preventDefault();
                         try {
-                          const res = await fetch(`http://127.0.0.1:8000/events/${event.id}/unregister`, {
+                          const res = await fetch(`${API_BASE}/events/${event.id}/unregister`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ user_id: userId }),
@@ -218,7 +219,7 @@ export default function DashboardPage() {
                             onClick={async () => {
                               if (!confirm("Delete this event? This cannot be undone.")) return;
                               try {
-                                const res = await fetch(`http://127.0.0.1:8000/events/${event.id}?user_id=${userId}`, {
+                                const res = await fetch(`${API_BASE}/events/${event.id}?user_id=${userId}`, {
                                   method: "DELETE",
                                 });
                                 if (!res.ok) {

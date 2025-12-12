@@ -6,6 +6,7 @@ import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import Layout from "../../components/layout";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
+import { API_BASE } from "../../lib/api";
 
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -64,7 +65,7 @@ export default function CreateEventPage() {
       };
 
       // Send POST request to create event
-      const response = await fetch('http://127.0.0.1:8000/events', {
+      const response = await fetch(`${API_BASE}/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +79,7 @@ export default function CreateEventPage() {
         
         // Refresh user data to get updated created_events count
         if (user) {
-          const userResponse = await fetch(`http://127.0.0.1:8000/users/${user.id}`);
+          const userResponse = await fetch(`${API_BASE}/users/${user.id}`);
           if (userResponse.ok) {
             const updatedUser = await userResponse.json();
             // You might want to update the user in your AuthContext here

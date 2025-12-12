@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import Layout from "../../../components/layout";
 import { Form, Input, Button, DatePicker, message, Card, InputNumber, Radio, Space } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { API_BASE } from "../../../lib/api";
 import dayjs from "dayjs";
 
 export default function EditEventPage() {
@@ -24,7 +25,7 @@ export default function EditEventPage() {
 
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/events/${id}?user_id=${userId}`);
+        const res = await fetch(`${API_BASE}/events/${id}?user_id=${userId}`);
         if (!res.ok) throw new Error("Failed to fetch event");
         const data = await res.json();
         const event = Array.isArray(data) ? data[0] : data;
@@ -62,7 +63,7 @@ export default function EditEventPage() {
     if (!userId) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/events/${id}?user_id=${userId}`, {
+      const res = await fetch(`${API_BASE}/events/${id}?user_id=${userId}`, {
         method: "PUT", // Must match backend
         headers: {
           "Content-Type": "application/json",

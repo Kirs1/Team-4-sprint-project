@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { API_BASE } from "../../../lib/api";
 
 export default NextAuth({
   providers: [
@@ -17,10 +18,10 @@ export default NextAuth({
       try {
         const googleId = account.providerAccountId;
 
-        const res = await fetch(`http://127.0.0.1:8000/users/${googleId}`);
+        const res = await fetch(`${API_BASE}/users/${googleId}`);
 
         if (res.status === 404) {
-          await fetch("http://127.0.0.1:8000/users", {
+          await fetch(`${API_BASE}/users`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
