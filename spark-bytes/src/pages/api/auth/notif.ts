@@ -47,7 +47,7 @@ export default async function handler(
 
   try {
     await mailgun.messages().send({
-      to: body.to,
+      to: body.to, //This is only for authorized people. If the TA is having any toruble please email me at Jsanddel@bu.edu
       from: `Spark! Bytes <no-reply@bu.edu>`,
       subject: body.subject || "Email",
       template: "spark-bytes notification", 
