@@ -92,6 +92,33 @@ export default function DashboardPage() {
     return <Layout><div>Loading dashboard...</div></Layout>;
   }
 
+  const sendNotification = async () => {
+    if (!session?.user?.email) {
+      message.error("No email found for your account");
+      return;
+    }
+    try {
+      const res = await fetch("/api/auth/notif", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: session.user.email,
+          name: session.user.name || "User",
+          subject: "Spark! Bytes Notification",
+          intro: "You tapped Manage Notification on your dashboard.",
+          content: "This is a test notification from Spark! Bytes.",
+          link: "https://sparkbytes.com",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to send notification");
+      message.success("Notification sent to your email");
+    } catch (err: any) {
+      console.error(err);
+      message.error(err.message || "Failed to send notification");
+    }
+  };
+
   return (
     <Layout>
       <div className={styles.dashboardContainer}>
@@ -105,7 +132,7 @@ export default function DashboardPage() {
 
         {/* Actions */}
         <div className={styles.actions}>
-          <button className={styles.actionButton}>
+          <button className={styles.actionButton} onClick={sendNotification}>
             <CalendarOutlined /> Manage Notification
           </button>
           <button className={styles.actionButton} onClick={() => router.push("/events/create")}>
