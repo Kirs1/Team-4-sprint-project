@@ -186,7 +186,29 @@ export default function DashboardPage() {
                     renderItem={(event) => (
                       <List.Item
                         actions={[
-                          <a onClick={() => router.push(`/events/edit/${event.id}`)}>Edit</a>
+                          <a onClick={() => router.push(`/events/${event.id}`)}>View</a>,
+                          <a onClick={() => router.push(`/events/edit/${event.id}`)}>Edit</a>,
+                          <a
+                            style={{ color: "red" }}
+                            onClick={async () => {
+                              if (!confirm("Delete this event? This cannot be undone.")) return;
+                              try {
+                                const res = await fetch(`http://127.0.0.1:8000/events/${event.id}?user_id=${userId}`, {
+                                  method: "DELETE",
+                                });
+                                if (!res.ok) {
+                                  const err = await res.json();
+                                  throw new Error(err.detail || "Delete failed");
+                                }
+                                message.success("Event deleted");
+                                setCreatedEvents((prev) => prev.filter((e) => e.id !== event.id));
+                              } catch (err: any) {
+                                message.error(err.message || "Failed to delete event");
+                              }
+                            }}
+                          >
+                            Delete
+                          </a>
                         ]}
                       >
                         <span className={styles.createdEventTitle}>{event.name}</span>

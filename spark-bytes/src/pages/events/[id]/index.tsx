@@ -218,6 +218,25 @@ export default function EventDetailPage() {
 
   const buttonState = getButtonState();
 
+  const handleDelete = async () => {
+    if (!session?.user?.id) return;
+    if (!confirm("Delete this event? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/events/${event.id}?user_id=${session.user.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Delete failed");
+      }
+      message.success("Event deleted");
+      router.push("/events");
+    } catch (err: any) {
+      console.error(err);
+      message.error(err.message || "Failed to delete event");
+    }
+  };
+
   return (
     <Layout>
       <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
@@ -327,10 +346,15 @@ export default function EventDetailPage() {
             )}
           </div>
           
-          <div style={{ marginTop: "30px" }}>
+          <div style={{ marginTop: "30px", display: "flex", gap: 12 }}>
             <Button onClick={() => router.push("/events")}>
               Back to All Events
             </Button>
+            {isCreator && (
+              <Button danger onClick={handleDelete}>
+                Delete Event
+              </Button>
+            )}
           </div>
         </Card>
       </div>
