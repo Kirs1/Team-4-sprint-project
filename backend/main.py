@@ -421,6 +421,10 @@ async def update_event(event_id: str, event_data: EventUpdate, user_id: str):
                 detail="No fields provided to update"
             )
 
+        # Map capacity -> quantity_left to match DB column
+        if "capacity" in update_data:
+            update_data["quantity_left"] = update_data.pop("capacity")
+
         # Validate times if provided (or fallback to existing)
         new_start_str = update_data.get("start_time", event.get("start_time"))
         new_end_str = update_data.get("end_time", event.get("end_time"))
@@ -467,7 +471,6 @@ async def update_event(event_id: str, event_data: EventUpdate, user_id: str):
                     "allergy_info": item.allergy_info,
                     "is_kosher": item.is_kosher,
                     "is_halal": item.is_halal,
-                    "category": item.category,
                     "event_id": event_id,
                 })
             if food_rows:
