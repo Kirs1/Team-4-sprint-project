@@ -134,6 +134,13 @@ From the `spark-bytes` directory:
 npm install
 npm test
 ```
+
+### Backend Testing 
+
+From the root directory
+```bash
+pytest --cov
+```
 This runs all test files under src/__tests__/.
 
 
