@@ -30,6 +30,16 @@ def get_bu_email_id(email: str) -> str:
         return email.replace('@bu.edu', '')
     return email
 
+def parse_iso_datetime(dt_str: str) -> datetime:
+    """Parse ISO datetime strings with optional trailing Z into aware datetime."""
+    if dt_str.endswith("Z"):
+        dt_str = dt_str.replace("Z", "+00:00")
+    return datetime.fromisoformat(dt_str)
+
+def now_with_tz(tz):
+    """Return current time aligned with provided tz (or UTC if None)."""
+    return datetime.now(tz) if tz else datetime.utcnow()
+
 @app.get("/")
 def root():
     return {"message": "FastAPI is running!"}
@@ -271,6 +281,27 @@ async def create_event(event_data: EventCreate):
                 detail="User not found"
             )
 
+        # Validate times
+        try:
+            start_dt = parse_iso_datetime(event_data.start_time)
+            end_dt = parse_iso_datetime(event_data.end_time)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid date format for start_time or end_time"
+            )
+        now_dt = now_with_tz(start_dt.tzinfo)
+        if start_dt <= now_dt:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Start time must be in the future"
+            )
+        if end_dt <= start_dt:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="End time must be after start time"
+            )
+
         # Create the event with creator_name
         event_dict = {
             "name": event_data.name,
@@ -389,6 +420,30 @@ async def update_event(event_id: str, event_data: EventUpdate, user_id: str):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No fields provided to update"
             )
+
+        # Validate times if provided (or fallback to existing)
+        new_start_str = update_data.get("start_time", event.get("start_time"))
+        new_end_str = update_data.get("end_time", event.get("end_time"))
+        if new_start_str and new_end_str:
+            try:
+                new_start_dt = parse_iso_datetime(str(new_start_str))
+                new_end_dt = parse_iso_datetime(str(new_end_str))
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid date format for start_time or end_time"
+                )
+            now_dt = now_with_tz(new_start_dt.tzinfo)
+            if new_start_dt <= now_dt:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Start time must be in the future"
+                )
+            if new_end_dt <= new_start_dt:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="End time must be after start time"
+                )
 
         # 4. Call supabase to update
         response = supabase.table("events").update(update_data).eq("id", event_id).execute()
