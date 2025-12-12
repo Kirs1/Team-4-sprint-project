@@ -383,8 +383,8 @@ async def update_event(event_id: str, event_data: EventUpdate, user_id: str):
             )
 
         # 3. Update only the fields passed in from the front end
-        update_data = event_data.dict(exclude_unset=True)
-        if not update_data:
+        update_data = event_data.dict(exclude_unset=True, exclude={"food_items"})
+        if not update_data and event_data.food_items is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No fields provided to update"
@@ -400,7 +400,25 @@ async def update_event(event_id: str, event_data: EventUpdate, user_id: str):
 
         updated_event = response.data[0]
 
-        # 5. Maintain the same string processing as other interfaces.
+        # 5. Replace food items if provided
+        if event_data.food_items is not None:
+            supabase.table("food_items").delete().eq("event_id", event_id).execute()
+            food_rows = []
+            for item in event_data.food_items:
+                if not item or not item.name:
+                    continue
+                food_rows.append({
+                    "name": item.name,
+                    "allergy_info": item.allergy_info,
+                    "is_kosher": item.is_kosher,
+                    "is_halal": item.is_halal,
+                    "category": item.category,
+                    "event_id": event_id,
+                })
+            if food_rows:
+                supabase.table("food_items").insert(food_rows).execute()
+
+        # 6. Maintain the same string processing as other interfaces.
         updated_event["start_time"] = str(updated_event["start_time"])
         updated_event["end_time"] = str(updated_event["end_time"])
         updated_event["location_name"] = str(updated_event["location_name"])

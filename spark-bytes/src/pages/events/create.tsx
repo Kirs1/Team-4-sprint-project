@@ -46,17 +46,6 @@ export default function CreateEventPage() {
         .format("YYYY-MM-DDTHH:mm:ss[Z]");
 
       
-      const foodItems =
-        (values.foodCategories || []).flatMap((category: any) =>
-          (category?.items || []).map((item: any) => ({
-            name: item.foodName,
-            allergy_info: item.allergies,
-            is_kosher: item.kosher,
-            is_halal: item.halal,
-            category: category?.category || undefined,
-          }))
-        );
-
       const eventData = {
         name: values.title,
         description: values.description,
@@ -66,7 +55,12 @@ export default function CreateEventPage() {
         capacity: values.capacity || 50,
         creator_id: user.id,
         creator_name: user.name,
-        food_items: foodItems,
+        food_items: (values.foodItems || []).map((item: any) => ({
+          name: item.foodName,
+          allergy_info: item.allergies,
+          is_kosher: item.kosher,
+          is_halal: item.halal,
+        })),
       };
 
       // Send POST request to create event
@@ -196,128 +190,70 @@ export default function CreateEventPage() {
               <TextArea rows={4} placeholder="Enter event description" />
             </Form.Item>
 
-            {/* Dynamic Food & Categories */}
-            <Form.List name="foodCategories">
+            {/* Food items (flat list) */}
+            <Form.List name="foodItems">
               {(fields, { add, remove }) => (
                 <>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <h3 style={{ margin: 0 }}>Food Categories</h3>
-                    <Button
-                      type="dashed"
-                      onClick={() => add()}
-                      icon={<PlusOutlined />}
-                    >
-                      Add Category
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <h3 style={{ margin: 0 }}>Food Items</h3>
+                    <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />}>
+                      Add Food Item
                     </Button>
                   </div>
 
                   {fields.map(({ key, name, ...restField }) => (
                     <Card
                       key={key}
-                      style={{ marginBottom: 16 }}
-                      title={
-                        <Space align="center">
-                          <Form.Item
-                            {...restField}
-                            name={[name, "category"]}
-                            noStyle
-                          >
-                            <Input placeholder="Category (optional)" />
-                          </Form.Item>
-                        </Space>
-                      }
-
+                      size="small"
+                      style={{ marginBottom: 12 }}
+                      title={`Food Item ${name + 1}`}
+                      extra={<MinusCircleOutlined onClick={() => remove(name)} style={{ color: "red" }} />}
                     >
-                      {/* Nested Form.List for items */}
-                      <Form.List name={[name, "items"]}>
-                        {(itemFields, { add: addItem, remove: removeItem }) => (
-                          <>
-                            {itemFields.map(({ key: itemKey, name: itemName, ...itemRest }) => (
-                              <Card
-                                key={itemKey}
-                                size="small"
-                                style={{ marginBottom: 12 }}
-                                title={`Food Item ${itemName + 1}`}
-                                extra={
-                                  <MinusCircleOutlined
-                                    onClick={() => removeItem(itemName)}
-                                    style={{ color: "red" }}
-                                  />
-                                }
-                              >
-                                <Space direction="vertical" style={{ width: "100%" }} size={10}>
-                                  {/* Food name (required) */}
-                                  <Form.Item
-                                    {...itemRest}
-                                    label="Food name"
-                                    name={[itemName, "foodName"]}
-                                    rules={[{ required: true, message: "Please enter food name" }]}
-                                  >
-                                    <Input placeholder="e.g., Pizza" />
-                                  </Form.Item>
+                      <Space direction="vertical" style={{ width: "100%" }} size={10}>
+                        <Form.Item
+                          {...restField}
+                          label="Food name"
+                          name={[name, "foodName"]}
+                          rules={[{ required: true, message: "Please enter food name" }]}
+                        >
+                          <Input placeholder="e.g., Pizza" />
+                        </Form.Item>
 
-                                  {/* Allergies (required) */}
-                                  <Form.Item
-                                    {...itemRest}
-                                    label="Any allergies"
-                                    name={[itemName, "allergies"]}
-                                    rules={[
-                                      { required: true, message: "Please specify allergies (type 'None' if not applicable)" },
-                                    ]}
-                                  >
-                                    <Input placeholder="e.g., Dairy, Nuts, Egg, or None" />
-                                  </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          label="Any allergies"
+                          name={[name, "allergies"]}
+                          rules={[
+                            { required: true, message: "Please specify allergies (type 'None' if not applicable)" },
+                          ]}
+                        >
+                          <Input placeholder="e.g., Dairy, Nuts, Egg, or None" />
+                        </Form.Item>
 
-                                  {/* Kosher (required Yes/No) */}
-                                  <Form.Item
-                                    {...itemRest}
-                                    label="Is this kosher?"
-                                    name={[itemName, "kosher"]}
-                                    rules={[{ required: true, message: "Please select kosher status" }]}
-                                  >
-                                    <Radio.Group optionType="button" buttonStyle="solid">
-                                      <Radio value={true}>Yes</Radio>
-                                      <Radio value={false}>No</Radio>
-                                    </Radio.Group>
-                                  </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          label="Is this kosher?"
+                          name={[name, "kosher"]}
+                          rules={[{ required: true, message: "Please select kosher status" }]}
+                        >
+                          <Radio.Group optionType="button" buttonStyle="solid">
+                            <Radio value={true}>Yes</Radio>
+                            <Radio value={false}>No</Radio>
+                          </Radio.Group>
+                        </Form.Item>
 
-                                  {/* Halal (required Yes/No) */}
-                                  <Form.Item
-                                    {...itemRest}
-                                    label="Is this halal?"
-                                    name={[itemName, "halal"]}
-                                    rules={[{ required: true, message: "Please select halal status" }]}
-                                  >
-                                    <Radio.Group optionType="button" buttonStyle="solid">
-                                      <Radio value={true}>Yes</Radio>
-                                      <Radio value={false}>No</Radio>
-                                    </Radio.Group>
-                                  </Form.Item>
-                                </Space>
-                              </Card>
-                            ))}
-
-
-                            <Form.Item>
-                              <Button
-                                type="dashed"
-                                onClick={() => addItem()}
-                                icon={<PlusOutlined />}
-                                block
-                              >
-                                Add Food Item
-                              </Button>
-                            </Form.Item>
-                          </>
-                        )}
-                      </Form.List>
+                        <Form.Item
+                          {...restField}
+                          label="Is this halal?"
+                          name={[name, "halal"]}
+                          rules={[{ required: true, message: "Please select halal status" }]}
+                        >
+                          <Radio.Group optionType="button" buttonStyle="solid">
+                            <Radio value={true}>Yes</Radio>
+                            <Radio value={false}>No</Radio>
+                          </Radio.Group>
+                        </Form.Item>
+                      </Space>
                     </Card>
                   ))}
                 </>
